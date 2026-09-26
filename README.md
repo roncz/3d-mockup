@@ -4,3 +4,5 @@ Little AI vibe coding experiment for adding screenshots or screen casts to devic
 
 Try here:
 https://roncz.github.io/3d-mockup/
+
+![3D Mockup](3d-mockup.gif)
