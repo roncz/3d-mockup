@@ -8,7 +8,9 @@ https://roncz.github.io/3d-mockup/
 ![3D Mockup](3d-mockup.gif)
 
 ## 3D Device Mockup Studio & Animation Suite
+
 A standalone, single-file HTML/WebGL application built with Three.js to compose, animate, and export high-resolution 3D device mockups directly in your browser.
+
 ---
 ### Features
 - **Geometry Presets:** Procedural chassis models for Modern Phones (20:9), Tablets (16:10 and 3:4), Laptops, and Frameless display panes.
@@ -21,14 +23,17 @@ A standalone, single-file HTML/WebGL application built with Three.js to compose,
   - **PNG:** Headless offline rendering up to **5K (5120×2880)** with 8× MSAA.
   - **WebM:** Hardware-accelerated 60 FPS recording at 40 Mbps with embedded original screencast audio and automated buffer-drain post-roll to eliminate clipped endings.
 ---
+
 ### Quick Start
 1. Open `index.html` in any modern web browser (desktop or mobile).
 2. Click **Upload Image** or **Upload Video** to apply content to the screen.
 3. Use touch or mouse gestures to position the device.
 4. Set keyframes and click **Export Image** or **Export Video**.
 ---
-## Navigation & Controls
-### Bottom Toolbar (HUD)
+
+### Navigation & Controls
+
+#### Bottom Toolbar (HUD)
 
 | Button | Action |
 | :--- | :--- |
@@ -46,7 +51,8 @@ A standalone, single-file HTML/WebGL application built with Three.js to compose,
 - **2 Fingers (Mobile) / Scroll Wheel (Desktop):** Dedicated camera zoom.
 - **Middle / Right Mouse Button:** Screen-space pan.
 ---
-### Exporting
+
+#### Exporting
 - **PNG Snapshots:** Select your preferred target resolution (**2K**, **4K**, or **5K**) in the side panel and click **Export Image (PNG)**.
 - **WebM Video:**
   - If a video screencast is loaded, the exported video duration automatically matches the source video runtime, while 3D keyframe motion follows the configured **Animation Time**.
