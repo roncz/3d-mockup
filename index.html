@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>3D Device Mockup Studio & Animation Suite</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel-bg: rgba(15, 23, 42, 0.94);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      touch-action: none;
+      background: #090d16;
+    }
+
+    #bg-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      background: radial-gradient(circle at center, #1e293b 0%, #06090e 100%);
+      transition: background 0.1s ease;
+    }
+
+    #viewport {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* Live Axis Status Badge */
+    #status-badge {
+      position: absolute;
+      top: max(14px, env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(12px);
+      padding: 6px 14px;
+      border-radius: 999px;
+      color: var(--text-muted);
+      font-size: 11px;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      white-space: nowrap;
+    }
+
+    #status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      transition: background 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    /* Floating Studio Controls Reopen Button */
+    .panel-toggle-btn {
+      position: absolute;
+      top: max(14px, env(safe-area-inset-top));
+      left: 14px;
+      z-index: 25;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      display: none;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+      transition: all 0.2s ease;
+    }
+    .panel-toggle-btn:hover {
+      background: rgba(30, 41, 59, 0.95);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .panel-toggle-btn.visible {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Floating Left Tool Panel */
+    .panel {
+      position: absolute;
+      top: max(14px, env(safe-area-inset-top));
+      left: 14px;
+      width: 325px;
+      max-height: calc(100dvh - 105px);
+      overflow-y: auto;
+      background: var(--panel-bg);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 16px;
+      padding-bottom: 24px;
+      z-index: 20;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    }
+
+    .panel::-webkit-scrollbar {
+      width: 5px;
+    }
+    .panel::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    .panel.collapsed {
+      transform: translateX(calc(-100% - 24px));
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    .panel-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin: 14px 0 6px 0;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+      gap: 6px;
+    }
+
+    .control-row label {
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    select, input[type="color"], input[type="number"] {
+      background: #1e293b;
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    select {
+      width: 185px;
+      cursor: pointer;
+    }
+
+    input[type="color"] {
+      width: 38px;
+      height: 26px;
+      padding: 0 1px;
+      cursor: pointer;
+      border: none;
+    }
+
+    input[type="number"] {
+      width: 60px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 110px;
+      accent-color: var(--accent);
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .btn {
+      width: 100%;
+      min-height: 32px;
+      background: #1e293b;
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .btn:hover {
+      background: #334155;
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent-hover);
+      color: #fff;
+    }
+
+    .btn.primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn.active-kf {
+      border-color: #22c55e;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+    }
+
+    .media-card {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px dashed var(--panel-border);
+      border-radius: 8px;
+      padding: 8px;
+      margin-bottom: 8px;
+    }
+
+    .media-info {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      word-break: break-all;
+    }
+
+    /* Bottom Toolbar */
+    .hud {
+      position: absolute;
+      bottom: max(16px, calc(env(safe-area-inset-bottom) + 10px));
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--panel-border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      z-index: 30;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+      max-width: 96vw;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .hud::-webkit-scrollbar {
+      display: none;
+    }
+
+    .hud-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 30px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      border-radius: 15px;
+      padding: 0 12px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .hud-btn.active, .hud-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    .hud-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .hud-btn.active-toggle {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+    }
+
+    .hud-btn.highlight {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+    }
+    .hud-btn.highlight:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .hud-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--panel-border);
+      margin: 0 2px;
+      flex-shrink: 0;
+    }
+
+    #anim-scrubber-container {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--panel-border);
+    }
+
+    @media (max-width: 768px) {
+      .panel {
+        top: max(56px, calc(env(safe-area-inset-top) + 48px));
+        left: 8px;
+        width: min(300px, 88vw);
+        max-height: calc(100dvh - 120px);
+      }
+      .hud {
+        bottom: max(14px, env(safe-area-inset-bottom));
+        padding: 5px 8px;
+        gap: 4px;
+      }
+      .hud-btn {
+        height: 28px;
+        padding: 0 10px;
+        font-size: 10.5px;
+      }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <div id="bg-wrapper"></div>
+
+  <!-- Dynamic Axis Status Pill -->
+  <div id="status-badge">
+    <div id="status-dot"></div>
+    <span id="status-text">Horizon: Locked | View: Idle</span>
+  </div>
+
+  <!-- Reopen Button -->
+  <button class="panel-toggle-btn" id="btn-toggle-menu">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+    Studio Controls
+  </button>
+
+  <!-- Left Control Dashboard -->
+  <div class="panel" id="side-panel">
+    <div class="panel-header">
+      <h2>Device Studio & Animator</h2>
+      <button id="btn-close-menu" style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; line-height:1;" title="Close Panel">&times;</button>
+    </div>
+
+    <!-- Media Screen Uploads -->
+    <div class="section-title">Media Screencast / Image</div>
+    <div class="media-card">
+      <div class="btn-grid" style="margin-top:0;">
+        <button class="btn" onclick="document.getElementById('img-file-input').click()">Upload Image</button>
+        <button class="btn" onclick="document.getElementById('vid-file-input').click()">Upload Video</button>
+      </div>
+      <input type="file" id="img-file-input" accept="image/png, image/jpeg, image/webp" style="display:none;">
+      <input type="file" id="vid-file-input" accept="video/mp4, video/webm, video/quicktime, video/x-matroska" style="display:none;">
+      
+      <div id="active-media-label" class="media-info">Current: Demo placeholder</div>
+
+      <div id="video-controls-box" style="display:none; margin-top:6px;">
+        <div class="btn-grid" style="margin-top:0;">
+          <button class="btn" id="btn-video-playpause">Pause Video</button>
+          <button class="btn" id="btn-video-mute">Audio: Muted</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Device Frame Configuration -->
+    <div class="section-title">Device & Chassis Geometry</div>
+    <div class="control-row">
+      <label>Preset (Canvas)</label>
+      <select id="device-preset">
+        <option value="phone" selected>Phone (1080×2400 · 20:9)</option>
+        <option value="tablet-16-10">Tablet (1600×2560 · 16:10)</option>
+        <option value="tablet-3-4">Tablet (1536×2048 · 3:4)</option>
+        <option value="laptop">Laptop (2560×1600 · 16:10)</option>
+        <option value="frameless">Frameless (1080×2400)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
+      <label>Chassis Color</label>
+      <input type="color" id="chassis-color" value="#12161f">
+    </div>
+
+    <div class="control-row">
+      <label>Chassis Opacity</label>
+      <input type="range" id="chassis-alpha" min="0.0" max="1.0" step="0.02" value="1.0">
+    </div>
+
+    <div class="control-row">
+      <label>Android Status Icons</label>
+      <input type="checkbox" id="toggle-status-bar" checked>
+    </div>
+
+    <div class="control-row">
+      <label>Glass Reflection</label>
+      <input type="range" id="glare-intensity" min="0" max="1" step="0.05" value="0.35">
+    </div>
+
+    <!-- Background & Canvas Transparency -->
+    <div class="section-title">Canvas Backdrop</div>
+    <div class="control-row">
+      <label>Background Color</label>
+      <input type="color" id="bg-color" value="#090d16">
+    </div>
+    <div class="control-row">
+      <label>Background Opacity</label>
+      <input type="range" id="bg-alpha" min="0.0" max="1.0" step="0.02" value="1.0">
+    </div>
+
+    <!-- Animation Keyframes -->
+    <div class="section-title">Keyframe Animation Engine</div>
+    <div class="btn-grid">
+      <button class="btn" id="btn-set-kfa">Set Start (A)</button>
+      <button class="btn" id="btn-set-kfb">Set End (B)</button>
+    </div>
+    <div class="btn-grid">
+      <button class="btn" id="btn-goto-kfa">Go to A</button>
+      <button class="btn" id="btn-goto-kfb">Go to B</button>
+    </div>
+
+    <!-- Independent Animation Timing Controls -->
+    <div class="control-row" style="margin-top: 8px;">
+      <label>Animation Time (A&rarr;B)</label>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <input type="number" id="anim-duration" min="0.5" max="120" step="0.5" value="2.0">
+        <span style="font-size:11px; color:var(--text-muted);">s</span>
+      </div>
+    </div>
+    <div class="control-row" id="row-media-duration" style="display:none;">
+      <label>Screencast Total Time</label>
+      <span id="label-media-duration" style="font-size:12px; color:#38bdf8; font-weight:600;">10.0s</span>
+    </div>
+
+    <div id="anim-scrubber-container">
+      <div class="control-row">
+        <label>Scrub Preview</label>
+        <input type="range" id="anim-scrub" min="0" max="1" step="0.001" value="0" style="flex:1;">
+      </div>
+      <div class="btn-grid">
+        <button class="btn" id="btn-play-anim">Play Preview</button>
+        <button class="btn" id="btn-stop-anim">Stop</button>
+      </div>
+    </div>
+
+    <!-- Export Section -->
+    <div class="section-title">Production Quality Export</div>
+    <div class="control-row">
+      <label>PNG Quality</label>
+      <select id="export-res-select">
+        <option value="2560">QHD 2K (2560×1440)</option>
+        <option value="3840" selected>Ultra HD 4K (3840×2160)</option>
+        <option value="5120">Print 5K (5120×2880)</option>
+      </select>
+    </div>
+    <button class="btn primary" id="btn-snapshot">Export Image (PNG)</button>
+    <button class="btn primary" id="btn-export-video" style="background:#10b981; border-color:#34d399;">Export Video (Full-Duration WebM)</button>
+    <div id="record-status" style="font-size:11px; color:#34d399; margin-top:6px; display:none; line-height:1.4;">Rendering...</div>
+  </div>
+
+  <!-- Bottom HUD: Modes, Move & Centering Controls -->
+  <div class="hud">
+    <button class="hud-btn active" id="btn-mode-rotate" onclick="setMode('rotate')">Rotate</button>
+    <button class="hud-btn" id="btn-mode-move" onclick="setMode('move')">Move</button>
+    <button class="hud-btn" id="btn-mode-free" onclick="setMode('free')">Free</button>
+    
+    <span class="hud-divider"></span>
+
+    <button class="hud-btn" id="btn-mode-local-x" onclick="setMode('local-x')" title="Drag moves device along its own local X axis in 3D space">Move Local X</button>
+    <button class="hud-btn" id="btn-mode-local-y" onclick="setMode('local-y')" title="Drag moves device along its own local Y axis in 3D space">Move Local Y</button>
+
+    <span class="hud-divider"></span>
+
+    <button class="hud-btn active-toggle" id="btn-toggle-horizon" onclick="toggleHorizonLock()">Horizon Lock: ON</button>
+
+    <span class="hud-divider"></span>
+
+    <button class="hud-btn" onclick="centerAxis('x')" title="Center 2D silhouette horizontally">Center X</button>
+    <button class="hud-btn" onclick="centerAxis('y')" title="Center 2D silhouette vertically">Center Y</button>
+    <button class="hud-btn" onclick="centerAxis('both')" title="Center 2D silhouette on screen like a printout">Center</button>
+    <button class="hud-btn highlight" onclick="fitModelToViewport(5)" title="Fit 2D silhouette to screen with exact 5px margin">Fit View</button>
+
+    <span class="hud-divider"></span>
+
+    <button class="hud-btn" onclick="alignView('lying')">Lying Flat</button>
+    <button class="hud-btn" onclick="alignView('front')">Front</button>
+    <button class="hud-btn" onclick="alignView('isometric')">Isometric</button>
+    <button class="hud-btn" onclick="alignView('reset')">Reset</button>
+  </div>
+
+  <canvas id="viewport"></canvas>
+
+  <script>
+    // ========================================================
+    // 1. THREE.JS INITIALIZATION
+    // ========================================================
+    const canvas = document.getElementById('viewport');
+    
+    const renderer = new THREE.WebGLRenderer({ 
+      canvas, 
+      antialias: true, 
+      alpha: true, 
+      preserveDrawingBuffer: true,
+      powerPreference: "high-performance"
+    });
+    
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+    const isMobileView = window.innerWidth < 768;
+    camera.position.set(0, 0, isMobileView ? 8.5 : 7.5);
+
+    const modelRoot = new THREE.Group();
+    scene.add(modelRoot);
+
+    // Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.95);
+    keyLight.position.set(5, 8, 5);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.45);
+    fillLight.position.set(-6, -4, -3);
+    scene.add(fillLight);
+
+    // ========================================================
+    // 2. PROCEDURAL ROUNDED GEOMETRIES
+    // ========================================================
+    function createRoundedRectShape(w, h, r) {
+      const shape = new THREE.Shape();
+      const x = -w / 2, y = -h / 2;
+      shape.moveTo(x + r, y);
+      shape.lineTo(x + w - r, y);
+      shape.quadraticCurveTo(x + w, y, x + w, y + r);
+      shape.lineTo(x + w, y + h - r);
+      shape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      shape.lineTo(x + r, y + h);
+      shape.quadraticCurveTo(x, y + h, x, y + h - r);
+      shape.lineTo(x, y + r);
+      shape.quadraticCurveTo(x, y, x + r, y);
+      return shape;
+    }
+
+    function createRoundedExtrusion(w, h, depth, radius, bevel = 0.015) {
+      const shape = createRoundedRectShape(w, h, radius);
+      const geom = new THREE.ExtrudeGeometry(shape, {
+        depth: depth,
+        bevelEnabled: true,
+        bevelSegments: 6,
+        steps: 1,
+        bevelSize: bevel,
+        bevelThickness: bevel
+      });
+      geom.center();
+      return geom;
+    }
+
+    function createRoundedPlane(w, h, radius) {
+      const shape = createRoundedRectShape(w, h, radius);
+      const geom = new THREE.ShapeGeometry(shape, 32);
+      const pos = geom.attributes.position;
+      const uvs = [];
+      for (let i = 0; i < pos.count; i++) {
+        uvs.push((pos.getX(i) + w / 2) / w, (pos.getY(i) + h / 2) / h);
+      }
+      geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      return geom;
+    }
+
+    // ========================================================
+    // 3. HARDWARE TEXTURES & AUDIO PRESERVATION
+    // ========================================================
+    let currentScreenTexture = null;
+    let statusTexture = null, statusMesh = null;
+    let userMedia = null;
+    let isVideoMedia = false;
+    let currentMediaBlobUrl = null;
+    let audioContext = null;
+    let audioSourceNode = null;
+    let audioDestinationNode = null;
+    let chassisMaterial, glareMaterial, screenMaterial;
+    let activePreset = 'phone';
+
+    function cleanupPreviousMedia() {
+      if (userMedia) {
+        if (isVideoMedia && userMedia.pause) {
+          userMedia.pause();
+          userMedia.removeAttribute('src');
+          userMedia.load();
+        }
+        userMedia = null;
+      }
+      if (currentMediaBlobUrl) {
+        URL.revokeObjectURL(currentMediaBlobUrl);
+        currentMediaBlobUrl = null;
+      }
+      if (currentScreenTexture) {
+        currentScreenTexture.dispose();
+        currentScreenTexture = null;
+      }
+    }
+
+    function initAudioGraph(videoElement) {
+      if (!audioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioCtx();
+      }
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      if (audioSourceNode) {
+        try { audioSourceNode.disconnect(); } catch(e){}
+      }
+      audioDestinationNode = audioContext.createMediaStreamDestination();
+      try {
+        audioSourceNode = audioContext.createMediaElementSource(videoElement);
+        audioSourceNode.connect(audioDestinationNode);
+        audioSourceNode.connect(audioContext.destination);
+      } catch (e) {
+        console.warn('Audio routing notice:', e);
+      }
+    }
+
+    function createStatusBarOverlayTexture(width = 2160) {
+      const c = document.createElement('canvas');
+      c.width = width;
+      c.height = Math.round((width / 1080) * 140);
+      const ctx = c.getContext('2d');
+      const scale = width / 1080;
+
+      ctx.save();
+      ctx.scale(scale, scale);
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 2;
+
+      const centerY = 74;
+      const paddingSide = 76;
+      const gap = 14;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 36px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('12:00', paddingSide, centerY);
+
+      const batW = 44, batH = 26, batR = 6, batTipW = 4, batTipH = 10;
+      const batTotalW = batW + 2 + batTipW;
+      const batX = 1080 - paddingSide - batTotalW;
+      const batY = centerY - (batH / 2);
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(batX, batY, batW, batH, batR);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(batX + batW + 2, centerY - (batTipH / 2), batTipW, batTipH);
+      ctx.beginPath();
+      ctx.roundRect(batX + 4, batY + 4, (batW - 8) * 0.85, batH - 8, 3);
+      ctx.fill();
+
+      const wifiW = 38, wifiH = 24;
+      const wifiRight = batX - gap;
+      const wifiCenterX = wifiRight - (wifiW / 2);
+      const wifiBaselineY = centerY + (wifiH / 2);
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(wifiCenterX, wifiBaselineY - 3, 20, -Math.PI * 0.78, -Math.PI * 0.22);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(wifiCenterX, wifiBaselineY - 3, 12, -Math.PI * 0.78, -Math.PI * 0.22);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(wifiCenterX, wifiBaselineY - 4, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      const barCount = 4, barW = 5, barGap = 3, cellH = 24;
+      const cellW = (barCount * barW) + ((barCount - 1) * barGap);
+      const cellRight = (wifiCenterX - (wifiW / 2)) - gap;
+      const cellLeft = cellRight - cellW;
+      const cellBottomY = centerY + (cellH / 2);
+
+      for (let i = 0; i < barCount; i++) {
+        const h = ((i + 1) / barCount) * cellH;
+        ctx.fillRect(cellLeft + i * (barW + barGap), cellBottomY - h, barW, h);
+      }
+      ctx.restore();
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.generateMipmaps = false;
+      return tex;
+    }
+
+    function applyDirectTextureSettings(tex, targetAspect = 9/16) {
+      if (!tex) return;
+      tex.encoding = THREE.sRGBEncoding;
+      tex.generateMipmaps = false;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+      const media = tex.image;
+      if (media) {
+        const mediaW = media.videoWidth || media.naturalWidth || media.width;
+        const mediaH = media.videoHeight || media.naturalHeight || media.height;
+        if (mediaW && mediaH) {
+          const mediaAspect = mediaW / mediaH;
+          if (mediaAspect > targetAspect) {
+            tex.repeat.set(targetAspect / mediaAspect, 1);
+            tex.offset.set((1 - (targetAspect / mediaAspect)) / 2, 0);
+          } else {
+            tex.repeat.set(1, mediaAspect / targetAspect);
+            tex.offset.set(0, 1 - (mediaAspect / targetAspect));
+          }
+        }
+      }
+      tex.needsUpdate = true;
+    }
+
+    function createPlaceholderTexture() {
+      const c = document.createElement('canvas');
+      c.width = 2160;
+      c.height = 4800;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 2160, 4800);
+      grad.addColorStop(0, '#1e3a8a');
+      grad.addColorStop(1, '#090d16');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 2160, 4800);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = 'bold 116px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Upload Screencast / Image', 1080, 2320);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '72px sans-serif';
+      ctx.fillText('Direct 4K GPU Pipeline', 1080, 2460);
+
+      const tex = new THREE.CanvasTexture(c);
+      applyDirectTextureSettings(tex, 1080/2400);
+      return tex;
+    }
+
+    function updateActiveScreenMedia() {
+      if (!screenMaterial) return;
+
+      let targetAspect = 1080 / 2400;
+      if (activePreset === 'tablet-16-10') targetAspect = 1600 / 2560;
+      else if (activePreset === 'tablet-3-4') targetAspect = 1536 / 2048;
+      else if (activePreset === 'laptop') targetAspect = 2560 / 1600;
+
+      if (userMedia && isVideoMedia) {
+        currentScreenTexture = new THREE.VideoTexture(userMedia);
+        applyDirectTextureSettings(currentScreenTexture, targetAspect);
+        screenMaterial.map = currentScreenTexture;
+        screenMaterial.needsUpdate = true;
+      } else if (userMedia && !isVideoMedia) {
+        currentScreenTexture = new THREE.Texture(userMedia);
+        applyDirectTextureSettings(currentScreenTexture, targetAspect);
+        screenMaterial.map = currentScreenTexture;
+        screenMaterial.needsUpdate = true;
+      } else {
+        currentScreenTexture = createPlaceholderTexture();
+        screenMaterial.map = currentScreenTexture;
+        screenMaterial.needsUpdate = true;
+      }
+    }
+
+    function buildDevice(type) {
+      activePreset = type;
+      while (modelRoot.children.length > 0) {
+        modelRoot.remove(modelRoot.children[0]);
+      }
+
+      const chassisColor = parseInt(document.getElementById('chassis-color').value.replace('#', '0x'));
+      const chassisAlpha = parseFloat(document.getElementById('chassis-alpha').value);
+      const glareAlpha = parseFloat(document.getElementById('glare-intensity').value);
+
+      chassisMaterial = new THREE.MeshStandardMaterial({
+        color: chassisColor,
+        metalness: 0.8,
+        roughness: 0.25,
+        transparent: chassisAlpha < 1.0,
+        opacity: chassisAlpha
+      });
+
+      screenMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      updateActiveScreenMedia();
+
+      glareMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: glareAlpha,
+        roughness: 0.1,
+        metalness: 0.9,
+        blending: THREE.AdditiveBlending
+      });
+
+      let w = 1.96, h = 4.36, d = 0.12, r = 0.25, bezel = 0.05;
+      let sW = w - bezel * 2, sH = h - bezel * 2, sR = r - 0.04;
+
+      if (type === 'tablet-16-10') {
+        w = 3.2; h = 5.12; d = 0.08; r = 0.20; bezel = 0.055;
+        sW = w - bezel * 2; sH = h - bezel * 2; sR = r - 0.035;
+      } else if (type === 'tablet-3-4') {
+        w = 3.6; h = 4.8; d = 0.08; r = 0.22; bezel = 0.055;
+        sW = w - bezel * 2; sH = h - bezel * 2; sR = r - 0.04;
+      }
+
+      if (type === 'phone' || type === 'tablet-16-10' || type === 'tablet-3-4') {
+        const bodyGeo = createRoundedExtrusion(w, h, d, r, 0.012);
+        const bodyMesh = new THREE.Mesh(bodyGeo, chassisMaterial);
+        modelRoot.add(bodyMesh);
+
+        const screenGeo = createRoundedPlane(sW, sH, sR);
+        const sMesh = new THREE.Mesh(screenGeo, screenMaterial);
+        sMesh.position.z = d / 2 + 0.015;
+        modelRoot.add(sMesh);
+
+        const showStatus = document.getElementById('toggle-status-bar').checked;
+        const statusGeo = new THREE.PlaneGeometry(sW, (sW / 1080) * 140);
+        statusTexture = createStatusBarOverlayTexture(2160);
+        const statusMat = new THREE.MeshBasicMaterial({ map: statusTexture, transparent: true });
+        statusMesh = new THREE.Mesh(statusGeo, statusMat);
+        statusMesh.position.set(0, (sH / 2) - ((sW / 1080) * 70), d / 2 + 0.016);
+        statusMesh.visible = showStatus;
+        modelRoot.add(statusMesh);
+
+        const gMesh = new THREE.Mesh(screenGeo, glareMaterial);
+        gMesh.position.z = d / 2 + 0.017;
+        modelRoot.add(gMesh);
+
+        const camGeo = createRoundedExtrusion(0.5, 0.8, 0.035, 0.14, 0.01);
+        const camMesh = new THREE.Mesh(camGeo, chassisMaterial);
+        camMesh.position.set(-w / 3.5, h / 3, -d / 2 - 0.025);
+        modelRoot.add(camMesh);
+
+      } else if (type === 'laptop') {
+        const baseW = 4.8, baseD = 3.1, baseH = 0.065, lR = 0.12;
+        const baseGeo = createRoundedExtrusion(baseW, baseD, baseH, lR, 0.01);
+        const baseMesh = new THREE.Mesh(baseGeo, chassisMaterial);
+        baseMesh.rotation.x = Math.PI / 2;
+        baseMesh.position.set(0, -1.15, 1.25);
+        modelRoot.add(baseMesh);
+
+        const trackGeo = createRoundedPlane(1.4, 0.85, 0.04);
+        const trackMat = new THREE.MeshStandardMaterial({ color: 0x222a36, roughness: 0.35 });
+        const trackMesh = new THREE.Mesh(trackGeo, trackMat);
+        trackMesh.rotation.x = -Math.PI / 2;
+        trackMesh.position.set(0, -1.11, 1.95);
+        modelRoot.add(trackMesh);
+
+        const lidW = 4.8, lidH = 3.05, lidD = 0.05, lBezel = 0.065;
+        const lidGroup = new THREE.Group();
+        lidGroup.position.set(0, -1.12, -0.25);
+        lidGroup.rotation.x = -0.22;
+
+        const lidGeo = createRoundedExtrusion(lidW, lidH, lidD, lR, 0.01);
+        const lidMesh = new THREE.Mesh(lidGeo, chassisMaterial);
+        lidMesh.position.set(0, lidH / 2, 0);
+        lidGroup.add(lidMesh);
+
+        const screenGeo = createRoundedPlane(lidW - lBezel * 2, lidH - lBezel * 2, 0.06);
+        const sMesh = new THREE.Mesh(screenGeo, screenMaterial);
+        sMesh.position.set(0, lidH / 2, lidD / 2 + 0.012);
+        lidGroup.add(sMesh);
+
+        const gMesh = new THREE.Mesh(screenGeo, glareMaterial);
+        gMesh.position.set(0, lidH / 2, lidD / 2 + 0.014);
+        lidGroup.add(gMesh);
+
+        modelRoot.add(lidGroup);
+
+      } else if (type === 'frameless') {
+        const screenGeo = createRoundedPlane(2.0, 4.4, 0.2);
+        const sMesh = new THREE.Mesh(screenGeo, screenMaterial);
+        modelRoot.add(sMesh);
+
+        const gMesh = new THREE.Mesh(screenGeo, glareMaterial);
+        gMesh.position.z = 0.002;
+        modelRoot.add(gMesh);
+      }
+    }
+
+    buildDevice('phone');
+
+    // ========================================================
+    // 4. VIEW CONTROLLER (ROTATE, MOVE AUTO-LOCK, ROBUST ZOOM)
+    // ========================================================
+    const _viewX = new THREE.Vector3();
+    const _viewY = new THREE.Vector3();
+    const _localX = new THREE.Vector3();
+    const _localY = new THREE.Vector3();
+    const _qRot = new THREE.Quaternion();
+
+    class AdvancedViewController {
+      constructor(dom, target, cam) {
+        this.dom = dom;
+        this.target = target;
+        this.camera = cam;
+
+        this.rotSpeed = 0.006;
+        this.panSpeed = 0.004;
+        this.zoomSpeed = 0.003;
+        this.lockThreshold = 8;
+
+        this.mode = 'rotate';
+        this.lockedAxis = null;
+        this.horizonLock = true;
+
+        this.is1Finger = false;
+        this.isPanning = false;
+
+        this.startX = 0;
+        this.startY = 0;
+        this.lastX = 0;
+        this.lastY = 0;
+
+        this.initialPinchDist = 0;
+
+        this.bindEvents();
+      }
+
+      bindEvents() {
+        this.dom.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
+        this.dom.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+        this.dom.addEventListener('touchend', (e) => this.onTouchEnd(e));
+        this.dom.addEventListener('touchcancel', (e) => this.onTouchEnd(e));
+
+        this.dom.addEventListener('mousedown', (e) => this.onMouseDown(e));
+        window.addEventListener('mousemove', (e) => this.onMouseMove(e));
+        window.addEventListener('mouseup', (e) => this.onMouseUp(e));
+        this.dom.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
+        this.dom.addEventListener('contextmenu', (e) => e.preventDefault());
+      }
+
+      enforceHorizonLock() {
+        if (!this.horizonLock) return;
+        const localRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this.target.quaternion);
+        localRight.y = 0;
+        if (localRight.lengthSq() > 0.0001) {
+          localRight.normalize();
+          const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(this.target.quaternion);
+          const localFwd = new THREE.Vector3().crossVectors(localRight, localUp).normalize();
+          localUp.crossVectors(localFwd, localRight).normalize();
+
+          const m = new THREE.Matrix4().makeBasis(localRight, localUp, localFwd);
+          this.target.quaternion.setFromRotationMatrix(m);
+        }
+      }
+
+      applyViewRotation(dx, dy) {
+        if (this.mode === 'free') {
+          _viewX.set(1, 0, 0).applyQuaternion(this.camera.quaternion).normalize();
+          _viewY.set(0, 1, 0).applyQuaternion(this.camera.quaternion).normalize();
+          _qRot.setFromAxisAngle(_viewX, dy * this.rotSpeed);
+          this.target.quaternion.premultiply(_qRot);
+          _qRot.setFromAxisAngle(_viewY, dx * this.rotSpeed);
+          this.target.quaternion.premultiply(_qRot);
+        } else if (this.lockedAxis === 'x') {
+          _viewX.set(1, 0, 0).applyQuaternion(this.camera.quaternion).normalize();
+          _qRot.setFromAxisAngle(_viewX, dy * this.rotSpeed);
+          this.target.quaternion.premultiply(_qRot);
+        } else if (this.lockedAxis === 'y') {
+          _viewY.set(0, 1, 0).applyQuaternion(this.camera.quaternion).normalize();
+          _qRot.setFromAxisAngle(_viewY, dx * this.rotSpeed);
+          this.target.quaternion.premultiply(_qRot);
+        }
+
+        this.enforceHorizonLock();
+      }
+
+      applyViewPan(dx, dy) {
+        if (this.lockedAxis === 'x') {
+          _viewY.set(0, 1, 0).applyQuaternion(this.camera.quaternion).multiplyScalar(-dy * this.panSpeed);
+          this.target.position.add(_viewY);
+        } else if (this.lockedAxis === 'y') {
+          _viewX.set(1, 0, 0).applyQuaternion(this.camera.quaternion).multiplyScalar(dx * this.panSpeed);
+          this.target.position.add(_viewX);
+        } else {
+          _viewX.set(1, 0, 0).applyQuaternion(this.camera.quaternion).multiplyScalar(dx * this.panSpeed);
+          _viewY.set(0, 1, 0).applyQuaternion(this.camera.quaternion).multiplyScalar(-dy * this.panSpeed);
+          this.target.position.add(_viewX).add(_viewY);
+        }
+      }
+
+      applyLocalTranslation(dx, dy) {
+        if (this.mode === 'local-x') {
+          _localX.set(1, 0, 0).applyQuaternion(this.target.quaternion).normalize();
+          this.target.position.addScaledVector(_localX, dx * this.panSpeed);
+          this.updateBadge('Translating Local X (3D)', '#38bdf8');
+        } else if (this.mode === 'local-y') {
+          _localY.set(0, 1, 0).applyQuaternion(this.target.quaternion).normalize();
+          this.target.position.addScaledVector(_localY, -dy * this.panSpeed);
+          this.updateBadge('Translating Local Y (3D)', '#38bdf8');
+        }
+      }
+
+      // RELATIVE ZOOM: Scales camera distance relative to model's actual 3D depth in camera space
+      applyZoom(delta) {
+        const bounds = measureScreenNdcBounds();
+        const currentTargetZ = bounds ? this.camera.position.z - bounds.meanDepth : this.target.position.z;
+        const currentDistance = this.camera.position.z - currentTargetZ;
+        
+        // Scale relative to current setback so zoom never clips into or gets stuck behind model
+        const newDistance = Math.max(1.2, Math.min(60.0, currentDistance * Math.exp(-delta * 0.8)));
+        this.camera.position.z = currentTargetZ + newDistance;
+      }
+
+      onTouchStart(e) {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+          const t = e.touches[0];
+          this.startDrag(t.clientX, t.clientY);
+        } else if (e.touches.length === 2) {
+          this.is1Finger = false;
+          this.lockedAxis = null;
+          this.updateBadge('Pinch to Zoom', '#38bdf8');
+          const [t1, t2] = e.touches;
+          this.initialPinchDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        }
+      }
+
+      onTouchMove(e) {
+        e.preventDefault();
+        if (e.touches.length === 1 && this.is1Finger) {
+          const t = e.touches[0];
+          this.handleDrag(t.clientX, t.clientY);
+        } else if (e.touches.length === 2) {
+          const [t1, t2] = e.touches;
+          const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+          const distDelta = currentDist - this.initialPinchDist;
+          this.applyZoom(distDelta * this.zoomSpeed);
+          this.initialPinchDist = currentDist;
+        }
+      }
+
+      onTouchEnd(e) {
+        if (e.touches.length === 0) {
+          this.is1Finger = false;
+          this.lockedAxis = null;
+          this.updateStatusIdle();
+        } else if (e.touches.length === 1) {
+          const t = e.touches[0];
+          this.startDrag(t.clientX, t.clientY);
+        }
+      }
+
+      onMouseDown(e) {
+        if (e.button === 0) {
+          this.startDrag(e.clientX, e.clientY);
+        } else if (e.button === 1 || e.button === 2) {
+          this.isPanning = true;
+          this.startX = this.lastX = e.clientX;
+          this.startY = this.lastY = e.clientY;
+          this.lockedAxis = null;
+          this.updateBadge('Pan View', '#38bdf8');
+        }
+      }
+
+      onMouseMove(e) {
+        if (this.is1Finger) {
+          this.handleDrag(e.clientX, e.clientY);
+        } else if (this.isPanning) {
+          const dx = e.clientX - this.lastX;
+          const dy = e.clientY - this.lastY;
+          this.applyViewPan(dx, dy);
+          this.lastX = e.clientX;
+          this.lastY = e.clientY;
+        }
+      }
+
+      onMouseUp() {
+        this.is1Finger = false;
+        this.isPanning = false;
+        this.lockedAxis = null;
+        this.updateStatusIdle();
+      }
+
+      onWheel(e) {
+        e.preventDefault();
+        this.applyZoom(-e.deltaY * 0.0015);
+      }
+
+      startDrag(x, y) {
+        this.is1Finger = true;
+        this.startX = this.lastX = x;
+        this.startY = this.lastY = y;
+        this.lockedAxis = null;
+
+        if (this.mode === 'local-x' || this.mode === 'local-y') {
+          this.updateBadge(`Moving along Device ${this.mode === 'local-x' ? 'Local X' : 'Local Y'}`, '#38bdf8');
+        } else if (this.mode === 'rotate') {
+          this.updateBadge('Rotate (Detecting gesture...)', '#f59e0b');
+        } else if (this.mode === 'move') {
+          this.updateBadge('Move (Detecting gesture...)', '#f59e0b');
+        } else if (this.mode === 'free') {
+          this.updateBadge('Free Rotation', '#a855f7');
+        }
+      }
+
+      handleDrag(x, y) {
+        const dx = x - this.lastX;
+        const dy = y - this.lastY;
+
+        if (!this.lockedAxis && (this.mode === 'rotate' || this.mode === 'move')) {
+          const totalDx = x - this.startX;
+          const totalDy = y - this.startY;
+          if (Math.hypot(totalDx, totalDy) > this.lockThreshold) {
+            this.lockedAxis = Math.abs(totalDx) >= Math.abs(totalDy) ? 'y' : 'x';
+            if (this.mode === 'rotate') {
+              this.updateBadge(`Rotate Locked: ${this.lockedAxis === 'y' ? 'Yaw (Left/Right)' : 'Pitch (Up/Down)'}`, '#22c55e');
+            } else {
+              this.updateBadge(`Move Locked: ${this.lockedAxis === 'y' ? 'Horizontal (X)' : 'Vertical (Y)'}`, '#22c55e');
+            }
+          }
+        }
+
+        if (this.mode === 'local-x' || this.mode === 'local-y') {
+          this.applyLocalTranslation(dx, dy);
+        } else if (this.mode === 'rotate') {
+          if (this.lockedAxis) {
+            this.applyViewRotation(dx, dy);
+          }
+        } else if (this.mode === 'move') {
+          if (this.lockedAxis) {
+            this.applyViewPan(dx, dy);
+          }
+        } else if (this.mode === 'free') {
+          this.applyViewRotation(dx, dy);
+        }
+
+        this.lastX = x;
+        this.lastY = y;
+      }
+
+      updateStatusIdle() {
+        const hText = this.horizonLock ? 'Horizon: Locked' : 'Horizon: Free';
+        this.updateBadge(`${hText} | Mode: ${this.mode.toUpperCase()}`, this.horizonLock ? '#22c55e' : '#64748b');
+      }
+
+      updateBadge(text, color) {
+        document.getElementById('status-text').innerText = text;
+        document.getElementById('status-dot').style.background = color;
+      }
+    }
+
+    const controller = new AdvancedViewController(canvas, modelRoot, camera);
+
+    // ========================================================
+    // 5. TRUE 2D SCREEN-GLASS SILHOUETTE CENTERING & FIT VIEW
+    // (Works across extreme close/distant local coordinate offsets)
+    // ========================================================
+    function getModelWorldVertices() {
+      modelRoot.updateMatrixWorld(true);
+      const vertices = [];
+
+      modelRoot.traverse((child) => {
+        if (child.isMesh && child.geometry) {
+          const geo = child.geometry;
+          if (!geo.boundingBox) geo.computeBoundingBox();
+          const b = geo.boundingBox;
+          
+          for (let ix of [b.min.x, (b.min.x + b.max.x) / 2, b.max.x]) {
+            for (let iy of [b.min.y, (b.min.y + b.max.y) / 2, b.max.y]) {
+              for (let iz of [b.min.z, (b.min.z + b.max.z) / 2, b.max.z]) {
+                const pt = new THREE.Vector3(ix, iy, iz);
+                pt.applyMatrix4(child.matrixWorld);
+                vertices.push(pt);
+              }
+            }
+          }
+        }
+      });
+      return vertices;
+    }
+
+    function measureScreenNdcBounds() {
+      camera.updateMatrixWorld(true);
+      camera.updateProjectionMatrix();
+
+      const vertices = getModelWorldVertices();
+      if (vertices.length === 0) return null;
+
+      let minX = Infinity, maxX = -Infinity;
+      let minY = Infinity, maxY = -Infinity;
+      let sumDepth = 0;
+
+      for (let i = 0; i < vertices.length; i++) {
+        const pCam = vertices[i].clone().applyMatrix4(camera.matrixWorldInverse);
+        sumDepth += -pCam.z;
+
+        const ndc = vertices[i].clone().project(camera);
+        if (ndc.x < minX) minX = ndc.x;
+        if (ndc.x > maxX) maxX = ndc.x;
+        if (ndc.y < minY) minY = ndc.y;
+        if (ndc.y > maxY) maxY = ndc.y;
+      }
+
+      return {
+        minX, maxX, minY, maxY,
+        widthNdc: maxX - minX,
+        heightNdc: maxY - minY,
+        midNdcX: (minX + maxX) / 2,
+        midNdcY: (minY + maxY) / 2,
+        meanDepth: Math.max(0.1, sumDepth / vertices.length)
+      };
+    }
+
+    function centerAxis(axis) {
+      isPlayingAnim = false;
+      modelRoot.updateMatrixWorld(true);
+
+      const fovRad = THREE.MathUtils.degToRad(camera.fov);
+      const halfTanY = Math.tan(fovRad / 2);
+      const halfTanX = halfTanY * camera.aspect;
+
+      // Iterative ray-unprojection shift to achieve perfect 0.00 NDC center
+      for (let iter = 0; iter < 3; iter++) {
+        const bounds = measureScreenNdcBounds();
+        if (!bounds) return;
+
+        const deltaWorldX = -bounds.midNdcX * (halfTanX * bounds.meanDepth);
+        const deltaWorldY = -bounds.midNdcY * (halfTanY * bounds.meanDepth);
+
+        const camQuat = camera.quaternion;
+        const shift = new THREE.Vector3(
+          (axis === 'x' || axis === 'both') ? deltaWorldX : 0,
+          (axis === 'y' || axis === 'both') ? deltaWorldY : 0,
+          0
+        ).applyQuaternion(camQuat);
+
+        modelRoot.position.add(shift);
+        modelRoot.updateMatrixWorld(true);
+      }
+
+      if (axis === 'x') {
+        controller.updateBadge('Centered Horizontally (2D Glass)', '#38bdf8');
+      } else if (axis === 'y') {
+        controller.updateBadge('Centered Vertically (2D Glass)', '#38bdf8');
+      } else {
+        controller.updateBadge('Silhouette Centered (2D Glass)', '#38bdf8');
+      }
+
+      setTimeout(() => controller.updateStatusIdle(), 1200);
+    }
+
+    // Dynamic Depth-Compensated Fit View:
+    // Fits device optical silhouette to 5px border regardless of how deep or near it was moved in 3D space
+    function fitModelToViewport(paddingPixels = 5) {
+      isPlayingAnim = false;
+
+      // 1. Center the optical silhouette on screen first
+      centerAxis('both');
+
+      const screenW = window.innerWidth;
+      const screenH = window.innerHeight;
+
+      const maxAllowedNdcX = Math.max(0.1, (screenW - paddingPixels * 2) / screenW);
+      const maxAllowedNdcY = Math.max(0.1, (screenH - paddingPixels * 2) / screenH);
+
+      // 2. Adjust camera distance relative to the model's actual depth in front of the lens
+      for (let iter = 0; iter < 7; iter++) {
+        const bounds = measureScreenNdcBounds();
+        if (!bounds) return;
+
+        const extentX = Math.max(Math.abs(bounds.minX), Math.abs(bounds.maxX));
+        const extentY = Math.max(Math.abs(bounds.minY), Math.abs(bounds.maxY));
+
+        const scaleRatioX = extentX / maxAllowedNdcX;
+        const scaleRatioY = extentY / maxAllowedNdcY;
+        const maxScaleRatio = Math.max(scaleRatioX, scaleRatioY);
+
+        if (Math.abs(maxScaleRatio - 1.0) < 0.002) break;
+
+        // Compute current setback distance to the model's depth plane
+        const currentTargetZ = camera.position.z - bounds.meanDepth;
+        const currentSetback = camera.position.z - currentTargetZ;
+        
+        // Scale distance by optical error
+        const newSetback = Math.max(1.2, currentSetback * maxScaleRatio);
+        camera.position.z = currentTargetZ + newSetback;
+        
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+      }
+
+      // Final micro-center pass
+      centerAxis('both');
+
+      controller.updateBadge('Fitted Silhouette to 5px Canvas Margin', '#38bdf8');
+      setTimeout(() => controller.updateStatusIdle(), 1200);
+    }
+
+    // ========================================================
+    // 6. HORIZON LOCK & BACKDROP CONTROLS
+    // ========================================================
+    function toggleHorizonLock() {
+      controller.horizonLock = !controller.horizonLock;
+      const btn = document.getElementById('btn-toggle-horizon');
+      if (controller.horizonLock) {
+        btn.innerText = 'Horizon Lock: ON';
+        btn.classList.add('active-toggle');
+        controller.enforceHorizonLock();
+      } else {
+        btn.innerText = 'Horizon Lock: OFF';
+        btn.classList.remove('active-toggle');
+      }
+      controller.updateStatusIdle();
+    }
+
+    function updateBackdrop() {
+      const hex = document.getElementById('bg-color').value;
+      const alpha = parseFloat(document.getElementById('bg-alpha').value);
+      const bgWrapper = document.getElementById('bg-wrapper');
+
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+
+      bgWrapper.style.background = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      renderer.setClearColor(new THREE.Color(hex), alpha);
+    }
+
+    document.getElementById('bg-color').addEventListener('input', updateBackdrop);
+    document.getElementById('bg-alpha').addEventListener('input', updateBackdrop);
+    updateBackdrop();
+
+    // ========================================================
+    // 7. KEYFRAME ANIMATION ENGINE
+    // ========================================================
+    const keyframes = {
+      A: {
+        pos: new THREE.Vector3(0, 0, 0),
+        quat: new THREE.Quaternion().identity(),
+        zoom: isMobileView ? 8.5 : 7.5
+      },
+      B: {
+        pos: new THREE.Vector3(0, 0, 0),
+        quat: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2.3),
+        zoom: isMobileView ? 8.5 : 7.5
+      }
+    };
+
+    let isPlayingAnim = false;
+    let animStartTime = 0;
+    let animDurationMs = 2000;
+    let totalPlaybackDurationMs = 2000;
+
+    function captureKeyframe(slot) {
+      keyframes[slot].pos.copy(modelRoot.position);
+      keyframes[slot].quat.copy(modelRoot.quaternion);
+      keyframes[slot].zoom = camera.position.z;
+
+      const btn = document.getElementById(`btn-set-kf${slot.toLowerCase()}`);
+      btn.classList.add('active-kf');
+      setTimeout(() => btn.classList.remove('active-kf'), 400);
+    }
+
+    function applyKeyframeLerp(t) {
+      const clampedT = Math.max(0, Math.min(1, t));
+      const factor = (1 - Math.cos(clampedT * Math.PI)) / 2;
+      modelRoot.position.lerpVectors(keyframes.A.pos, keyframes.B.pos, factor);
+      modelRoot.quaternion.slerpQuaternions(keyframes.A.quat, keyframes.B.quat, factor);
+      camera.position.z = THREE.MathUtils.lerp(keyframes.A.zoom, keyframes.B.zoom, factor);
+      if (controller.horizonLock) controller.enforceHorizonLock();
+    }
+
+    document.getElementById('btn-set-kfa').addEventListener('click', () => captureKeyframe('A'));
+    document.getElementById('btn-set-kfb').addEventListener('click', () => captureKeyframe('B'));
+
+    document.getElementById('btn-goto-kfa').addEventListener('click', () => {
+      isPlayingAnim = false;
+      document.getElementById('anim-scrub').value = 0;
+      applyKeyframeLerp(0);
+    });
+
+    document.getElementById('btn-goto-kfb').addEventListener('click', () => {
+      isPlayingAnim = false;
+      document.getElementById('anim-scrub').value = 1;
+      applyKeyframeLerp(1);
+    });
+
+    const scrubSlider = document.getElementById('anim-scrub');
+    scrubSlider.addEventListener('input', (e) => {
+      isPlayingAnim = false;
+      applyKeyframeLerp(parseFloat(e.target.value));
+    });
+
+    document.getElementById('btn-play-anim').addEventListener('click', () => {
+      isPlayingAnim = true;
+      animStartTime = performance.now();
+      animDurationMs = Math.max(0.1, parseFloat(document.getElementById('anim-duration').value)) * 1000;
+
+      if (userMedia && isVideoMedia && userMedia.duration) {
+        totalPlaybackDurationMs = userMedia.duration * 1000;
+        userMedia.currentTime = 0;
+        userMedia.play();
+      } else {
+        totalPlaybackDurationMs = animDurationMs;
+      }
+    });
+
+    document.getElementById('btn-stop-anim').addEventListener('click', () => {
+      isPlayingAnim = false;
+      if (userMedia && isVideoMedia) userMedia.pause();
+    });
+
+    // ========================================================
+    // 8. CLEAN FILE SELECTION & AUDIO PRESERVATION
+    // ========================================================
+    const imgInput = document.getElementById('img-file-input');
+    const vidInput = document.getElementById('vid-file-input');
+    const mediaLabel = document.getElementById('active-media-label');
+    const videoControlsBox = document.getElementById('video-controls-box');
+    const btnVideoPlayPause = document.getElementById('btn-video-playpause');
+    const btnVideoMute = document.getElementById('btn-video-mute');
+    const rowMediaDuration = document.getElementById('row-media-duration');
+    const labelMediaDuration = document.getElementById('label-media-duration');
+
+    imgInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      cleanupPreviousMedia();
+
+      isVideoMedia = false;
+      videoControlsBox.style.display = 'none';
+      rowMediaDuration.style.display = 'none';
+
+      currentMediaBlobUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        userMedia = img;
+        mediaLabel.innerText = `Image: ${file.name} (${img.naturalWidth}×${img.naturalHeight} Native)`;
+        updateActiveScreenMedia();
+      };
+      img.src = currentMediaBlobUrl;
+    });
+
+    vidInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      cleanupPreviousMedia();
+
+      isVideoMedia = true;
+      currentMediaBlobUrl = URL.createObjectURL(file);
+
+      const video = document.createElement('video');
+      video.src = currentMediaBlobUrl;
+      video.crossOrigin = 'anonymous';
+      video.loop = true;
+      video.muted = false;
+      video.playsInline = true;
+
+      video.onloadedmetadata = () => {
+        if (video.duration && !isNaN(video.duration)) {
+          rowMediaDuration.style.display = 'flex';
+          labelMediaDuration.innerText = `${video.duration.toFixed(1)}s (Export length)`;
+        }
+        mediaLabel.innerText = `Video: ${file.name} (${video.videoWidth}×${video.videoHeight} · ${video.duration.toFixed(1)}s Direct GPU)`;
+        videoControlsBox.style.display = 'block';
+        
+        initAudioGraph(video);
+
+        video.play().catch(() => {
+          video.muted = true;
+          video.play();
+          btnVideoMute.innerText = 'Audio: Muted';
+        });
+
+        userMedia = video;
+        updateActiveScreenMedia();
+      };
+    });
+
+    btnVideoPlayPause.addEventListener('click', () => {
+      if (!userMedia || !isVideoMedia) return;
+      if (userMedia.paused) {
+        userMedia.play();
+        btnVideoPlayPause.innerText = 'Pause Video';
+      } else {
+        userMedia.pause();
+        btnVideoPlayPause.innerText = 'Play Video';
+      }
+    });
+
+    btnVideoMute.addEventListener('click', () => {
+      if (!userMedia || !isVideoMedia) return;
+      userMedia.muted = !userMedia.muted;
+      btnVideoMute.innerText = userMedia.muted ? 'Audio: Muted' : 'Audio: Active';
+    });
+
+    document.getElementById('device-preset').addEventListener('change', (e) => {
+      buildDevice(e.target.value);
+      fitModelToViewport(5);
+    });
+
+    document.getElementById('chassis-color').addEventListener('input', () => {
+      buildDevice(document.getElementById('device-preset').value);
+    });
+
+    document.getElementById('chassis-alpha').addEventListener('input', (e) => {
+      if (chassisMaterial) {
+        const val = parseFloat(e.target.value);
+        chassisMaterial.transparent = val < 1.0;
+        chassisMaterial.opacity = val;
+      }
+    });
+
+    document.getElementById('toggle-status-bar').addEventListener('change', (e) => {
+      if (statusMesh) statusMesh.visible = e.target.checked;
+    });
+
+    document.getElementById('glare-intensity').addEventListener('input', (e) => {
+      if (glareMaterial) glareMaterial.opacity = parseFloat(e.target.value);
+    });
+
+    // Panel Toggle Logic
+    const sidePanel = document.getElementById('side-panel');
+    const toggleBtn = document.getElementById('btn-toggle-menu');
+
+    function closeStudioPanel() {
+      sidePanel.classList.add('collapsed');
+      toggleBtn.classList.add('visible');
+    }
+
+    function openStudioPanel() {
+      sidePanel.classList.remove('collapsed');
+      toggleBtn.classList.remove('visible');
+    }
+
+    document.getElementById('btn-close-menu').addEventListener('click', closeStudioPanel);
+    toggleBtn.addEventListener('click', openStudioPanel);
+
+    // ========================================================
+    // 9. SUPERSAMPLED 4K/5K OFFLINE PNG RENDER ENGINE
+    // ========================================================
+    document.getElementById('btn-snapshot').addEventListener('click', () => {
+      const statusLabel = document.getElementById('record-status');
+      statusLabel.style.display = 'block';
+      statusLabel.innerText = 'Rendering pristine Ultra-HD PNG...';
+
+      setTimeout(() => {
+        const targetWidth = parseInt(document.getElementById('export-res-select').value) || 3840;
+        const currentAspect = camera.aspect;
+        const targetHeight = Math.round(targetWidth / currentAspect);
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = targetWidth;
+        offCanvas.height = targetHeight;
+
+        const offRenderer = new THREE.WebGLRenderer({
+          canvas: offCanvas,
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: true,
+          powerPreference: "high-performance"
+        });
+
+        offRenderer.setPixelRatio(1);
+        offRenderer.setSize(targetWidth, targetHeight, false);
+        offRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+        offRenderer.toneMappingExposure = 1.0;
+        offRenderer.outputEncoding = THREE.sRGBEncoding;
+
+        const hex = document.getElementById('bg-color').value;
+        const alpha = parseFloat(document.getElementById('bg-alpha').value);
+        offRenderer.setClearColor(new THREE.Color(hex), alpha);
+
+        const offCamera = camera.clone();
+        offCamera.aspect = targetWidth / targetHeight;
+        offCamera.updateProjectionMatrix();
+
+        offRenderer.render(scene, offCamera);
+
+        offCanvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.download = `mockup-ultra-hd-${targetWidth}p-${Date.now()}.png`;
+          a.href = url;
+          a.click();
+          URL.revokeObjectURL(url);
+
+          offRenderer.dispose();
+          statusLabel.style.display = 'none';
+        }, 'image/png');
+      }, 50);
+    });
+
+    // ========================================================
+    // 10. SYNCHRONIZED VIDEO EXPORT WITH POST-ROLL DRAIN
+    // ========================================================
+    let isRecordingVideo = false;
+
+    document.getElementById('btn-export-video').addEventListener('click', () => {
+      if (isRecordingVideo) return;
+      isRecordingVideo = true;
+      isPlayingAnim = false;
+
+      const statusLabel = document.getElementById('record-status');
+      statusLabel.style.display = 'block';
+
+      const motionDurationSec = Math.max(0.1, parseFloat(document.getElementById('anim-duration').value));
+      let exportDurationSec = motionDurationSec;
+
+      if (userMedia && isVideoMedia && userMedia.duration && !isNaN(userMedia.duration)) {
+        exportDurationSec = userMedia.duration;
+      }
+
+      statusLabel.innerHTML = `Recording <b>${exportDurationSec.toFixed(1)}s</b> video (Audio + Visual)...`;
+
+      const videoStream = canvas.captureStream(60);
+      const combinedTracks = [...videoStream.getVideoTracks()];
+
+      if (userMedia && isVideoMedia && audioDestinationNode) {
+        const audioTracks = audioDestinationNode.stream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          combinedTracks.push(audioTracks[0]);
+        }
+      }
+
+      const mediaStream = new MediaStream(combinedTracks);
+
+      let mimeType = 'video/webm;codecs=vp9,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+      const recorder = new MediaRecorder(mediaStream, { 
+        mimeType: mimeType,
+        videoBitsPerSecond: 40000000
+      });
+      
+      const chunks = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = `screencast-${exportDurationSec.toFixed(1)}s-${Date.now()}.webm`;
+        a.href = url;
+        a.click();
+        statusLabel.style.display = 'none';
+        isRecordingVideo = false;
+
+        if (userMedia && isVideoMedia) {
+          userMedia.loop = true;
+          userMedia.play();
+        }
+      };
+
+      applyKeyframeLerp(0);
+      renderer.render(scene, camera);
+
+      if (userMedia && isVideoMedia) {
+        userMedia.loop = false;
+        userMedia.currentTime = 0;
+        userMedia.play();
+      }
+
+      recorder.start(100);
+
+      const recStartWallTime = performance.now();
+      const postRollDurationSec = 0.35;
+      let isEndingHold = false;
+      let endingHoldStartTime = 0;
+
+      function recordFrame() {
+        if (!isRecordingVideo) return;
+
+        const now = performance.now();
+        const elapsedSec = (now - recStartWallTime) / 1000;
+
+        if (!isEndingHold) {
+          const motionProgress = Math.min(1.0, elapsedSec / motionDurationSec);
+          applyKeyframeLerp(motionProgress);
+
+          const remainingSec = Math.max(0, exportDurationSec - elapsedSec);
+          statusLabel.innerHTML = `Recording: <b>${Math.min(elapsedSec, exportDurationSec).toFixed(1)}s</b> / ${exportDurationSec.toFixed(1)}s (Remaining: ${remainingSec.toFixed(1)}s)...`;
+
+          if (elapsedSec >= exportDurationSec) {
+            isEndingHold = true;
+            endingHoldStartTime = now;
+            applyKeyframeLerp(1.0);
+            try { recorder.requestData(); } catch(e){}
+          }
+        } else {
+          applyKeyframeLerp(1.0);
+          const holdElapsed = (now - endingHoldStartTime) / 1000;
+          statusLabel.innerHTML = `Finalizing frames & audio...`;
+
+          if (holdElapsed >= postRollDurationSec) {
+            if (recorder.state === 'recording') {
+              try { recorder.requestData(); } catch(e){}
+              recorder.stop();
+            }
+            return;
+          }
+        }
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(recordFrame);
+      }
+
+      requestAnimationFrame(recordFrame);
+    });
+
+    // ========================================================
+    // 11. HUD MODES
+    // ========================================================
+    function setMode(mode) {
+      controller.mode = mode;
+      document.querySelectorAll('.hud-btn').forEach(btn => {
+        if (btn.id.startsWith('btn-mode-')) btn.classList.remove('active');
+      });
+      const activeBtn = document.getElementById(`btn-mode-${mode}`);
+      if (activeBtn) activeBtn.classList.add('active');
+      controller.updateStatusIdle();
+    }
+
+    function alignView(type) {
+      isPlayingAnim = false;
+      if (type === 'lying') {
+        modelRoot.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2.3);
+      } else if (type === 'front') {
+        modelRoot.quaternion.identity();
+      } else if (type === 'isometric') {
+        const q1 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 5);
+        const q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 8);
+        modelRoot.quaternion.copy(q1.multiply(q2));
+      } else if (type === 'reset') {
+        modelRoot.quaternion.identity();
+        modelRoot.position.set(0, 0, 0);
+        camera.position.set(0, 0, isMobileView ? 8.5 : 7.5);
+      }
+      if (controller.horizonLock) controller.enforceHorizonLock();
+      centerAxis('both');
+    }
+
+    alignView('isometric');
+
+    // ========================================================
+    // 12. RENDER LOOP
+    // ========================================================
+    function render() {
+      requestAnimationFrame(render);
+
+      if (!isRecordingVideo && isPlayingAnim) {
+        const elapsed = performance.now() - animStartTime;
+
+        const motionProgress = Math.min(1.0, elapsed / animDurationMs);
+        applyKeyframeLerp(motionProgress);
+
+        const totalProgress = Math.min(1.0, elapsed / totalPlaybackDurationMs);
+        scrubSlider.value = totalProgress;
+
+        if (totalProgress >= 1.0) {
+          isPlayingAnim = false;
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+    render();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
