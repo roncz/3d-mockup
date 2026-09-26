@@ -59,5 +59,9 @@ A standalone, single-file HTML/WebGL application built with Three.js to compose,
   - Includes original audio track.
   - Encoded with high-bitrate VP9/Opus at 60 FPS.
 
+## Disclaimer
+
+> **Note:** This project is 100% AI vibe-coded to scratch my own itch. There are rough edges, quirks, and almost certainly bugs. Use it at your own risk.
+
 ## Third-Party Libraries
 - [Three.js](https://threejs.org/) - Licensed under the [MIT License](https://github.com/mrdoob/three.js/blob/dev/LICENSE)
