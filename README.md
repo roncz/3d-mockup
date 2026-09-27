@@ -65,3 +65,4 @@ A standalone, single-file HTML/WebGL application built with Three.js to compose,
 
 ## Third-Party Libraries
 - [Three.js](https://threejs.org/) - Licensed under the [MIT License](https://github.com/mrdoob/three.js/blob/dev/LICENSE)
+- [mp4-muxer](https://github.com/vanilagy/mp4-muxer) - Licensed under the [MIT License](https://github.com/vanilagy/mp4-muxer/blob/main/LICENSE)
