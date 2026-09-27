@@ -53,7 +53,6 @@
       z-index: 1;
     }
 
-    /* Live Axis Status Badge */
     #status-badge {
       position: absolute;
       top: max(14px, env(safe-area-inset-top));
@@ -85,7 +84,6 @@
       flex-shrink: 0;
     }
 
-    /* Floating Studio Controls Reopen Button */
     .panel-toggle-btn {
       position: absolute;
       top: max(14px, env(safe-area-inset-top));
@@ -115,7 +113,6 @@
       gap: 6px;
     }
 
-    /* Floating Left Tool Panel */
     .panel {
       position: absolute;
       top: max(14px, env(safe-area-inset-top));
@@ -258,6 +255,15 @@
       background: var(--accent-hover);
     }
 
+    .btn.danger {
+      background: #dc2626;
+      border-color: #ef4444;
+      color: #fff;
+    }
+    .btn.danger:hover {
+      background: #b91c1c;
+    }
+
     .btn.active-kf {
       border-color: #22c55e;
       box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
@@ -278,7 +284,6 @@
       word-break: break-all;
     }
 
-    /* Bottom Toolbar */
     .hud {
       position: absolute;
       bottom: max(16px, calc(env(safe-area-inset-bottom) + 10px));
@@ -382,20 +387,18 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Lightweight in-browser MP4 Muxer for deterministic frame timestamps -->
-  <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.4/build/mp4-muxer.min.js"></script>
+  <!-- ts-ebml: injects exact duration and seek headers into exported WebM -->
+  <script src="https://cdn.jsdelivr.net/npm/ts-ebml@2.0.2/dist/EBML.min.js"></script>
 </head>
 <body>
 
   <div id="bg-wrapper"></div>
 
-  <!-- Dynamic Axis Status Pill -->
   <div id="status-badge">
     <div id="status-dot"></div>
     <span id="status-text">Horizon: Locked | View: Idle</span>
   </div>
 
-  <!-- Reopen Button -->
   <button class="panel-toggle-btn" id="btn-toggle-menu">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"></circle>
@@ -404,14 +407,12 @@
     Studio Controls
   </button>
 
-  <!-- Left Control Dashboard -->
   <div class="panel" id="side-panel">
     <div class="panel-header">
       <h2>Device Studio & Animator</h2>
       <button id="btn-close-menu" style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; line-height:1;" title="Close Panel">&times;</button>
     </div>
 
-    <!-- Media Screen Uploads -->
     <div class="section-title">Media Screencast / Image</div>
     <div class="media-card">
       <div class="btn-grid" style="margin-top:0;">
@@ -421,7 +422,7 @@
       <input type="file" id="img-file-input" accept="image/png, image/jpeg, image/webp" style="display:none;">
       <input type="file" id="vid-file-input" accept="video/mp4, video/webm, video/quicktime, video/x-matroska" style="display:none;">
       
-      <div id="active-media-label" class="media-info">Current: Demo placeholder</div>
+      <div id="active-media-label" class="media-info">Current: Demo placeholder (5.0s default)</div>
 
       <div id="video-controls-box" style="display:none; margin-top:6px;">
         <div class="btn-grid" style="margin-top:0;">
@@ -431,7 +432,6 @@
       </div>
     </div>
 
-    <!-- Device Frame Configuration -->
     <div class="section-title">Device & Chassis Geometry</div>
     <div class="control-row">
       <label>Preset (Canvas)</label>
@@ -464,7 +464,6 @@
       <input type="range" id="glare-intensity" min="0" max="1" step="0.05" value="0.35">
     </div>
 
-    <!-- Background & Canvas Transparency -->
     <div class="section-title">Canvas Backdrop</div>
     <div class="control-row">
       <label>Background Color</label>
@@ -475,7 +474,6 @@
       <input type="range" id="bg-alpha" min="0.0" max="1.0" step="0.02" value="1.0">
     </div>
 
-    <!-- Animation Keyframes -->
     <div class="section-title">Keyframe Animation Engine</div>
     <div class="btn-grid">
       <button class="btn" id="btn-set-kfa">Set Start (A)</button>
@@ -486,17 +484,16 @@
       <button class="btn" id="btn-goto-kfb">Go to B</button>
     </div>
 
-    <!-- Independent Animation Timing Controls -->
     <div class="control-row" style="margin-top: 8px;">
       <label>Animation Time (A&rarr;B)</label>
       <div style="display:flex; align-items:center; gap:4px;">
-        <input type="number" id="anim-duration" min="0.5" max="120" step="0.5" value="2.0">
+        <input type="number" id="anim-duration" min="0.5" max="120" step="0.1" value="5.0">
         <span style="font-size:11px; color:var(--text-muted);">s</span>
       </div>
     </div>
     <div class="control-row" id="row-media-duration" style="display:none;">
       <label>Screencast Total Time</label>
-      <span id="label-media-duration" style="font-size:12px; color:#38bdf8; font-weight:600;">10.0s</span>
+      <span id="label-media-duration" style="font-size:12px; color:#38bdf8; font-weight:600;">5.0s</span>
     </div>
 
     <div id="anim-scrubber-container">
@@ -510,22 +507,16 @@
       </div>
     </div>
 
-    <!-- Export Section -->
     <div class="section-title">Production Quality Export</div>
-    <div class="control-row">
-      <label>PNG Quality</label>
-      <select id="export-res-select">
-        <option value="2560">QHD 2K (2560×1440)</option>
-        <option value="3840" selected>Ultra HD 4K (3840×2160)</option>
-        <option value="5120">Print 5K (5120×2880)</option>
-      </select>
+    <button class="btn primary" id="btn-snapshot">Export Image (4K Ultra HD PNG)</button>
+    <button class="btn primary" id="btn-export-video" style="background:#10b981; border-color:#34d399;">Export Video (Smooth 60fps)</button>
+    
+    <div id="render-controls" style="display:none; margin-top:8px;">
+      <div id="record-status" style="font-size:11px; color:#34d399; line-height:1.4;">Rendering...</div>
+      <button class="btn danger" id="btn-cancel-render" style="margin-top:6px;">Cancel Export</button>
     </div>
-    <button class="btn primary" id="btn-snapshot">Export Image (PNG)</button>
-    <button class="btn primary" id="btn-export-video" style="background:#10b981; border-color:#34d399;">Export Video (Smooth 60fps MP4)</button>
-    <div id="record-status" style="font-size:11px; color:#34d399; margin-top:6px; display:none; line-height:1.4;">Rendering...</div>
   </div>
 
-  <!-- Bottom HUD: Modes, Move & Centering Controls -->
   <div class="hud">
     <button class="hud-btn active" id="btn-mode-rotate" onclick="setMode('rotate')">Rotate</button>
     <button class="hud-btn" id="btn-mode-move" onclick="setMode('move')">Move</button>
@@ -571,7 +562,7 @@
       powerPreference: "high-performance"
     });
     
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -585,7 +576,6 @@
     const modelRoot = new THREE.Group();
     scene.add(modelRoot);
 
-    // Studio Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
 
@@ -649,6 +639,9 @@
     let userMedia = null;
     let isVideoMedia = false;
     let currentMediaBlobUrl = null;
+    let audioContext = null;
+    let audioSourceNode = null;
+    let audioDestinationNode = null;
     let chassisMaterial, glareMaterial, screenMaterial;
     let activePreset = 'phone';
 
@@ -668,6 +661,27 @@
       if (currentScreenTexture) {
         currentScreenTexture.dispose();
         currentScreenTexture = null;
+      }
+    }
+
+    function initAudioGraph(videoElement) {
+      if (!audioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioCtx();
+      }
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      if (audioSourceNode) {
+        try { audioSourceNode.disconnect(); } catch(e){}
+      }
+      audioDestinationNode = audioContext.createMediaStreamDestination();
+      try {
+        audioSourceNode = audioContext.createMediaElementSource(videoElement);
+        audioSourceNode.connect(audioDestinationNode);
+        audioSourceNode.connect(audioContext.destination);
+      } catch (e) {
+        console.warn('Audio routing notice:', e);
       }
     }
 
@@ -948,7 +962,7 @@
     buildDevice('phone');
 
     // ========================================================
-    // 4. VIEW CONTROLLER (ROTATE, MOVE AUTO-LOCK, ROBUST ZOOM)
+    // 4. VIEW CONTROLLER
     // ========================================================
     const _viewX = new THREE.Vector3();
     const _viewY = new THREE.Vector3();
@@ -1208,7 +1222,7 @@
     const controller = new AdvancedViewController(canvas, modelRoot, camera);
 
     // ========================================================
-    // 5. TRUE 2D SCREEN-GLASS SILHOUETTE CENTERING & FIT VIEW
+    // 5. SCREEN-GLASS SILHOUETTE CENTERING & FIT VIEW
     // ========================================================
     function getModelWorldVertices() {
       modelRoot.updateMatrixWorld(true);
@@ -1393,8 +1407,8 @@
 
     let isPlayingAnim = false;
     let animStartTime = 0;
-    let animDurationMs = 2000;
-    let totalPlaybackDurationMs = 2000;
+    let animDurationMs = 5000;
+    let totalPlaybackDurationMs = 5000;
 
     function captureKeyframe(slot) {
       keyframes[slot].pos.copy(modelRoot.position);
@@ -1456,7 +1470,7 @@
     });
 
     // ========================================================
-    // 8. CLEAN FILE SELECTION
+    // 8. FILE SELECTION (5s DEFAULT FOR IMAGES, VIDEO LENGTH FOR SCREENCASTS)
     // ========================================================
     const imgInput = document.getElementById('img-file-input');
     const vidInput = document.getElementById('vid-file-input');
@@ -1466,6 +1480,7 @@
     const btnVideoMute = document.getElementById('btn-video-mute');
     const rowMediaDuration = document.getElementById('row-media-duration');
     const labelMediaDuration = document.getElementById('label-media-duration');
+    const animDurationInput = document.getElementById('anim-duration');
 
     imgInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -1477,11 +1492,15 @@
       videoControlsBox.style.display = 'none';
       rowMediaDuration.style.display = 'none';
 
+      animDurationInput.value = "5.0";
+      animDurationMs = 5000;
+      totalPlaybackDurationMs = 5000;
+
       currentMediaBlobUrl = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
         userMedia = img;
-        mediaLabel.innerText = `Image: ${file.name} (${img.naturalWidth}×${img.naturalHeight} Native)`;
+        mediaLabel.innerText = `Image: ${file.name} (${img.naturalWidth}×${img.naturalHeight} · 5.0s default)`;
         updateActiveScreenMedia();
       };
       img.src = currentMediaBlobUrl;
@@ -1499,19 +1518,31 @@
       const video = document.createElement('video');
       video.src = currentMediaBlobUrl;
       video.crossOrigin = 'anonymous';
-      video.loop = true;
-      video.muted = true;
+      video.loop = false;
+      video.muted = false;
       video.playsInline = true;
 
       video.onloadedmetadata = () => {
-        if (video.duration && !isNaN(video.duration)) {
-          rowMediaDuration.style.display = 'flex';
-          labelMediaDuration.innerText = `${video.duration.toFixed(1)}s (Export length)`;
-        }
-        mediaLabel.innerText = `Video: ${file.name} (${video.videoWidth}×${video.videoHeight} · ${video.duration.toFixed(1)}s Direct GPU)`;
+        const dur = video.duration && !isNaN(video.duration) ? video.duration : 5.0;
+        const durFormatted = dur.toFixed(1);
+
+        animDurationInput.value = durFormatted;
+        animDurationMs = dur * 1000;
+        totalPlaybackDurationMs = dur * 1000;
+
+        rowMediaDuration.style.display = 'flex';
+        labelMediaDuration.innerText = `${durFormatted}s (Full length synced)`;
+        mediaLabel.innerText = `Video: ${file.name} (${video.videoWidth}×${video.videoHeight} · ${durFormatted}s)`;
         videoControlsBox.style.display = 'block';
 
-        video.play().catch(() => {});
+        initAudioGraph(video);
+
+        video.play().catch(() => {
+          video.muted = true;
+          video.play();
+          btnVideoMute.innerText = 'Audio: Muted';
+        });
+
         userMedia = video;
         updateActiveScreenMedia();
       };
@@ -1559,7 +1590,6 @@
       if (glareMaterial) glareMaterial.opacity = parseFloat(e.target.value);
     });
 
-    // Panel Toggle Logic
     const sidePanel = document.getElementById('side-panel');
     const toggleBtn = document.getElementById('btn-toggle-menu');
 
@@ -1577,15 +1607,16 @@
     toggleBtn.addEventListener('click', openStudioPanel);
 
     // ========================================================
-    // 9. SUPERSAMPLED OFFLINE PNG RENDER ENGINE
+    // 9. DEDICATED 4K ULTRA HD PNG RENDER ENGINE
     // ========================================================
     document.getElementById('btn-snapshot').addEventListener('click', () => {
+      const renderControls = document.getElementById('render-controls');
       const statusLabel = document.getElementById('record-status');
-      statusLabel.style.display = 'block';
-      statusLabel.innerText = 'Rendering pristine Ultra-HD PNG...';
+      renderControls.style.display = 'block';
+      statusLabel.innerText = 'Rendering 4K Ultra HD PNG (3840×2160)...';
 
       setTimeout(() => {
-        const targetWidth = parseInt(document.getElementById('export-res-select').value) || 3840;
+        const targetWidth = 3840;
         const currentAspect = camera.aspect;
         const targetHeight = Math.round(targetWidth / currentAspect);
 
@@ -1620,177 +1651,223 @@
         offCanvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.download = `mockup-ultra-hd-${targetWidth}p-${Date.now()}.png`;
+          a.download = `mockup-ultra-hd-4K-${Date.now()}.png`;
           a.href = url;
           a.click();
           URL.revokeObjectURL(url);
 
           offRenderer.dispose();
-          statusLabel.style.display = 'none';
+          renderControls.style.display = 'none';
         }, 'image/png');
-      }, 50);
+      }, 40);
     });
 
     // ========================================================
-    // 10. EXACT-TIMED 60 FPS OFFLINE VIDEO RENDER ENGINE (MP4-MUXER)
+    // 10. UNIFIED 60 FPS RECORDING ENGINE WITH ACCURATE DURATION
     // ========================================================
     let isRecordingVideo = false;
+    let cancelExportRequested = false;
 
-    function seekVideoToTime(video, targetSec) {
-      return new Promise((resolve) => {
-        if (!video || isNaN(targetSec)) {
-          resolve();
-          return;
-        }
-        if (Math.abs(video.currentTime - targetSec) < 0.005) {
-          resolve();
-          return;
-        }
-        let timeoutId;
-        const onSeeked = () => {
-          clearTimeout(timeoutId);
-          video.removeEventListener('seeked', onSeeked);
-          resolve();
-        };
-        timeoutId = setTimeout(() => {
-          video.removeEventListener('seeked', onSeeked);
-          resolve();
-        }, 150);
-        video.addEventListener('seeked', onSeeked);
-        video.currentTime = Math.min(targetSec, video.duration || targetSec);
-      });
+    // Helper: Injects accurate, compliant Duration and Seekhead Cues into the WebM container
+    async function fixWebmDuration(blob, durationMs) {
+      if (typeof EBML === 'undefined') return blob;
+      try {
+        const decoder = new EBML.Decoder();
+        const reader = new EBML.Reader();
+        reader.logging = false;
+        reader.drop_default_duration = false;
+
+        const buffer = await blob.arrayBuffer();
+        const elms = decoder.decode(buffer);
+        elms.forEach((elm) => reader.read(elm));
+        reader.stop();
+
+        const refinedMetadataBuf = EBML.tools.makeMetadataSeekable(
+          reader.metadatas,
+          durationMs,
+          reader.cues
+        );
+
+        const body = buffer.slice(reader.metadataSize);
+        return new Blob([refinedMetadataBuf, body], { type: 'video/webm' });
+      } catch (err) {
+        console.warn('EBML metadata injection fallback:', err);
+        return blob;
+      }
     }
+
+    document.getElementById('btn-cancel-render').addEventListener('click', () => {
+      if (isRecordingVideo) {
+        cancelExportRequested = true;
+        document.getElementById('record-status').innerText = 'Cancelling render...';
+      }
+    });
 
     document.getElementById('btn-export-video').addEventListener('click', async () => {
       if (isRecordingVideo) return;
-
-      if (typeof VideoEncoder === 'undefined' || typeof Mp4Muxer === 'undefined') {
-        alert("WebCodecs API or MP4 Muxer is not supported by your current browser. Please use Chrome, Edge, or a modern Chromium-based browser.");
-        return;
-      }
-
       isRecordingVideo = true;
+      cancelExportRequested = false;
       isPlayingAnim = false;
 
+      const renderControls = document.getElementById('render-controls');
       const statusLabel = document.getElementById('record-status');
-      statusLabel.style.display = 'block';
+      renderControls.style.display = 'block';
 
       const motionDurationSec = Math.max(0.1, parseFloat(document.getElementById('anim-duration').value));
       let exportDurationSec = motionDurationSec;
 
       if (userMedia && isVideoMedia && userMedia.duration && !isNaN(userMedia.duration)) {
         exportDurationSec = userMedia.duration;
-        userMedia.pause();
       }
 
-      statusLabel.innerHTML = `Setting up exact 60fps MP4 export for <b>${exportDurationSec.toFixed(1)}s</b>...`;
+      statusLabel.innerHTML = `Starting export for <b>${exportDurationSec.toFixed(1)}s</b>...`;
 
-      // H.264 video dimensions must be even numbers
-      const encWidth = (canvas.width % 2 === 0) ? canvas.width : canvas.width - 1;
-      const encHeight = (canvas.height % 2 === 0) ? canvas.height : canvas.height - 1;
-      const fps = 60;
-      const totalFrames = Math.round(exportDurationSec * fps);
-      const stepDurationSec = 1 / fps;
+      // 1. Establish 60 FPS master capture stream
+      const videoStream = canvas.captureStream(60);
+      const combinedTracks = [...videoStream.getVideoTracks()];
 
-      const muxer = new Mp4Muxer.Muxer({
-        target: new Mp4Muxer.ArrayBufferTarget(),
-        video: {
-          codec: 'avc',
-          width: encWidth,
-          height: encHeight
-        },
-        fastStart: 'in-memory'
+      if (userMedia && isVideoMedia && audioDestinationNode) {
+        const audioTracks = audioDestinationNode.stream.getAudioTracks();
+        if (audioTracks.length > 0) combinedTracks.push(audioTracks[0]);
+      }
+
+      const compositeStream = new MediaStream(combinedTracks);
+
+      let mimeType = 'video/webm;codecs=vp9,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+      const recorder = new MediaRecorder(compositeStream, {
+        mimeType: mimeType,
+        videoBitsPerSecond: 28000000
       });
 
-      let encodeError = null;
-      const videoEncoder = new VideoEncoder({
-        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-        error: (e) => {
-          console.error("VideoEncoder error:", e);
-          encodeError = e;
+      const chunks = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+
+      const exportStartWallTime = performance.now();
+
+      recorder.onstop = async () => {
+        if (!cancelExportRequested) {
+          statusLabel.innerHTML = `Writing exact metadata duration...`;
+          const rawBlob = new Blob(chunks, { type: 'video/webm' });
+
+          // Calculate precise actual recorded wall duration so Explorer shows matching runtime
+          const actualDurationSec = Math.max(
+            exportDurationSec,
+            (performance.now() - exportStartWallTime) / 1000
+          );
+          const accurateDurationMs = actualDurationSec * 1000;
+
+          const finalBlob = await fixWebmDuration(rawBlob, accurateDurationMs);
+
+          const url = URL.createObjectURL(finalBlob);
+          const a = document.createElement('a');
+          a.download = `mockup-60fps-${actualDurationSec.toFixed(1)}s-${Date.now()}.webm`;
+          a.href = url;
+          a.click();
+          URL.revokeObjectURL(url);
         }
-      });
 
-      // AVC Baseline Profile @ Level 5.1
-      videoEncoder.configure({
-        codec: 'avc1.420033',
-        width: encWidth,
-        height: encHeight,
-        bitrate: 35000000,
-        framerate: fps
-      });
+        renderControls.style.display = 'none';
+        isRecordingVideo = false;
 
+        if (userMedia && isVideoMedia) {
+          userMedia.onended = null;
+          userMedia.loop = true;
+          userMedia.currentTime = 0;
+          userMedia.play().catch(() => {});
+        }
+      };
+
+      // 2. Prepare visual state and start recorder
       applyKeyframeLerp(0);
-      if (userMedia && isVideoMedia) {
-        await seekVideoToTime(userMedia, 0);
-      }
       renderer.render(scene, camera);
 
-      // Deterministic render loop
-      for (let f = 0; f < totalFrames; f++) {
-        if (encodeError) break;
-
-        const currentSec = f * stepDurationSec;
-
-        // Sync model transforms to timeline
-        const motionProgress = Math.min(1.0, currentSec / motionDurationSec);
-        applyKeyframeLerp(motionProgress);
-
-        // Sync screen media
-        if (userMedia && isVideoMedia) {
-          await seekVideoToTime(userMedia, currentSec);
-          if (currentScreenTexture) currentScreenTexture.needsUpdate = true;
-        }
-
-        // Render WebGL frame
-        renderer.render(scene, camera);
-
-        // Create discrete timestamped VideoFrame (in microseconds)
-        const frameTimestampMicros = Math.round(f * (1000000 / fps));
-        const frameDurationMicros = Math.round(1000000 / fps);
-
-        const vFrame = new VideoFrame(canvas, {
-          timestamp: frameTimestampMicros,
-          duration: frameDurationMicros
+      if (userMedia && isVideoMedia) {
+        userMedia.pause();
+        userMedia.currentTime = 0;
+        await new Promise((resolve) => {
+          const onSeeked = () => {
+            userMedia.removeEventListener('seeked', onSeeked);
+            resolve();
+          };
+          userMedia.addEventListener('seeked', onSeeked, { once: true });
         });
-
-        // Keyframe every 1 second (every 60 frames)
-        const isKey = (f % fps === 0);
-        videoEncoder.encode(vFrame, { keyFrame: isKey });
-        vFrame.close();
-
-        // Prevent memory overload
-        if (videoEncoder.encodeQueueSize > 5) {
-          await new Promise((r) => setTimeout(r, 4));
-        } else {
-          await new Promise((r) => setTimeout(r, 0));
-        }
-
-        const pct = Math.round(((f + 1) / totalFrames) * 100);
-        statusLabel.innerHTML = `Encoding MP4: <b>${pct}%</b> (Frame ${f + 1} / ${totalFrames} · ${(currentSec).toFixed(1)}s / ${exportDurationSec.toFixed(1)}s)`;
       }
 
-      statusLabel.innerHTML = `Finalizing MP4 file...`;
-      await videoEncoder.flush();
-      videoEncoder.close();
-      muxer.finalize();
-
-      const { buffer } = muxer.target;
-      const blob = new Blob([buffer], { type: 'video/mp4' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.download = `mockup-60fps-${exportDurationSec.toFixed(1)}s-${Date.now()}.mp4`;
-      a.href = url;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      statusLabel.style.display = 'none';
-      isRecordingVideo = false;
+      recorder.start(100);
 
       if (userMedia && isVideoMedia) {
-        userMedia.loop = true;
-        userMedia.play();
+        await userMedia.play().catch(() => {});
       }
+
+      let isFinalizing = false;
+
+      function stopAndFinalize() {
+        if (isFinalizing) return;
+        isFinalizing = true;
+        statusLabel.innerHTML = `Flushing final frames...`;
+
+        if (userMedia && isVideoMedia) {
+          userMedia.onended = null;
+        }
+
+        applyKeyframeLerp(1.0);
+        renderer.render(scene, camera);
+
+        setTimeout(() => {
+          if (recorder.state === 'recording') {
+            recorder.requestData();
+            setTimeout(() => recorder.stop(), 200);
+          }
+        }, 150);
+      }
+
+      if (userMedia && isVideoMedia) {
+        userMedia.onended = () => stopAndFinalize();
+      }
+
+      // Continuous 60fps render loop driven directly by requestAnimationFrame
+      function captureLoop() {
+        if (!isRecordingVideo || cancelExportRequested || isFinalizing) {
+          if (!isFinalizing && !cancelExportRequested) stopAndFinalize();
+          return;
+        }
+
+        const now = performance.now();
+        let elapsedSec = 0;
+
+        if (userMedia && isVideoMedia) {
+          elapsedSec = userMedia.currentTime;
+        } else {
+          elapsedSec = (now - exportStartWallTime) / 1000;
+        }
+
+        const motionProgress = Math.min(1.0, elapsedSec / motionDurationSec);
+        applyKeyframeLerp(motionProgress);
+
+        if (userMedia && isVideoMedia && currentScreenTexture) {
+          currentScreenTexture.needsUpdate = true;
+        }
+
+        renderer.render(scene, camera);
+
+        const pct = Math.min(100, Math.round((elapsedSec / exportDurationSec) * 100));
+        statusLabel.innerHTML = `Recording 60 FPS: <b>${pct}%</b> (${Math.min(elapsedSec, exportDurationSec).toFixed(1)}s / ${exportDurationSec.toFixed(1)}s)`;
+
+        // Ensure full playback run before initiating post-roll
+        if (elapsedSec >= (exportDurationSec - 0.05) || (now - exportStartWallTime) / 1000 >= (exportDurationSec + 0.6)) {
+          stopAndFinalize();
+          return;
+        }
+
+        requestAnimationFrame(captureLoop);
+      }
+
+      requestAnimationFrame(captureLoop);
     });
 
     // ========================================================
@@ -1833,21 +1910,25 @@
     function render() {
       requestAnimationFrame(render);
 
-      if (!isRecordingVideo && isPlayingAnim) {
-        const elapsed = performance.now() - animStartTime;
-
-        const motionProgress = Math.min(1.0, elapsed / animDurationMs);
-        applyKeyframeLerp(motionProgress);
-
-        const totalProgress = Math.min(1.0, elapsed / totalPlaybackDurationMs);
-        scrubSlider.value = totalProgress;
-
-        if (totalProgress >= 1.0) {
-          isPlayingAnim = false;
-        }
-      }
-
       if (!isRecordingVideo) {
+        if (isPlayingAnim) {
+          const elapsed = performance.now() - animStartTime;
+
+          const motionProgress = Math.min(1.0, elapsed / animDurationMs);
+          applyKeyframeLerp(motionProgress);
+
+          const totalProgress = Math.min(1.0, elapsed / totalPlaybackDurationMs);
+          scrubSlider.value = totalProgress;
+
+          if (totalProgress >= 1.0) {
+            isPlayingAnim = false;
+          }
+        }
+
+        if (isVideoMedia && userMedia && !userMedia.paused) {
+          if (currentScreenTexture) currentScreenTexture.needsUpdate = true;
+        }
+
         renderer.render(scene, camera);
       }
     }
