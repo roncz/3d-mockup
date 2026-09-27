@@ -382,6 +382,8 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Lightweight in-browser MP4 Muxer for deterministic frame timestamps -->
+  <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.4/build/mp4-muxer.min.js"></script>
 </head>
 <body>
 
@@ -519,7 +521,7 @@
       </select>
     </div>
     <button class="btn primary" id="btn-snapshot">Export Image (PNG)</button>
-    <button class="btn primary" id="btn-export-video" style="background:#10b981; border-color:#34d399;">Export Video (Full-Duration WebM)</button>
+    <button class="btn primary" id="btn-export-video" style="background:#10b981; border-color:#34d399;">Export Video (Smooth 60fps MP4)</button>
     <div id="record-status" style="font-size:11px; color:#34d399; margin-top:6px; display:none; line-height:1.4;">Rendering...</div>
   </div>
 
@@ -640,16 +642,13 @@
     }
 
     // ========================================================
-    // 3. HARDWARE TEXTURES & AUDIO PRESERVATION
+    // 3. HARDWARE TEXTURES
     // ========================================================
     let currentScreenTexture = null;
     let statusTexture = null, statusMesh = null;
     let userMedia = null;
     let isVideoMedia = false;
     let currentMediaBlobUrl = null;
-    let audioContext = null;
-    let audioSourceNode = null;
-    let audioDestinationNode = null;
     let chassisMaterial, glareMaterial, screenMaterial;
     let activePreset = 'phone';
 
@@ -669,27 +668,6 @@
       if (currentScreenTexture) {
         currentScreenTexture.dispose();
         currentScreenTexture = null;
-      }
-    }
-
-    function initAudioGraph(videoElement) {
-      if (!audioContext) {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        audioContext = new AudioCtx();
-      }
-      if (audioContext.state === 'suspended') {
-        audioContext.resume();
-      }
-      if (audioSourceNode) {
-        try { audioSourceNode.disconnect(); } catch(e){}
-      }
-      audioDestinationNode = audioContext.createMediaStreamDestination();
-      try {
-        audioSourceNode = audioContext.createMediaElementSource(videoElement);
-        audioSourceNode.connect(audioDestinationNode);
-        audioSourceNode.connect(audioContext.destination);
-      } catch (e) {
-        console.warn('Audio routing notice:', e);
       }
     }
 
@@ -1081,13 +1059,10 @@
         }
       }
 
-      // RELATIVE ZOOM: Scales camera distance relative to model's actual 3D depth in camera space
       applyZoom(delta) {
         const bounds = measureScreenNdcBounds();
         const currentTargetZ = bounds ? this.camera.position.z - bounds.meanDepth : this.target.position.z;
         const currentDistance = this.camera.position.z - currentTargetZ;
-        
-        // Scale relative to current setback so zoom never clips into or gets stuck behind model
         const newDistance = Math.max(1.2, Math.min(60.0, currentDistance * Math.exp(-delta * 0.8)));
         this.camera.position.z = currentTargetZ + newDistance;
       }
@@ -1234,7 +1209,6 @@
 
     // ========================================================
     // 5. TRUE 2D SCREEN-GLASS SILHOUETTE CENTERING & FIT VIEW
-    // (Works across extreme close/distant local coordinate offsets)
     // ========================================================
     function getModelWorldVertices() {
       modelRoot.updateMatrixWorld(true);
@@ -1300,7 +1274,6 @@
       const halfTanY = Math.tan(fovRad / 2);
       const halfTanX = halfTanY * camera.aspect;
 
-      // Iterative ray-unprojection shift to achieve perfect 0.00 NDC center
       for (let iter = 0; iter < 3; iter++) {
         const bounds = measureScreenNdcBounds();
         if (!bounds) return;
@@ -1330,12 +1303,8 @@
       setTimeout(() => controller.updateStatusIdle(), 1200);
     }
 
-    // Dynamic Depth-Compensated Fit View:
-    // Fits device optical silhouette to 5px border regardless of how deep or near it was moved in 3D space
     function fitModelToViewport(paddingPixels = 5) {
       isPlayingAnim = false;
-
-      // 1. Center the optical silhouette on screen first
       centerAxis('both');
 
       const screenW = window.innerWidth;
@@ -1344,7 +1313,6 @@
       const maxAllowedNdcX = Math.max(0.1, (screenW - paddingPixels * 2) / screenW);
       const maxAllowedNdcY = Math.max(0.1, (screenH - paddingPixels * 2) / screenH);
 
-      // 2. Adjust camera distance relative to the model's actual depth in front of the lens
       for (let iter = 0; iter < 7; iter++) {
         const bounds = measureScreenNdcBounds();
         if (!bounds) return;
@@ -1358,11 +1326,9 @@
 
         if (Math.abs(maxScaleRatio - 1.0) < 0.002) break;
 
-        // Compute current setback distance to the model's depth plane
         const currentTargetZ = camera.position.z - bounds.meanDepth;
         const currentSetback = camera.position.z - currentTargetZ;
         
-        // Scale distance by optical error
         const newSetback = Math.max(1.2, currentSetback * maxScaleRatio);
         camera.position.z = currentTargetZ + newSetback;
         
@@ -1370,9 +1336,7 @@
         camera.updateProjectionMatrix();
       }
 
-      // Final micro-center pass
       centerAxis('both');
-
       controller.updateBadge('Fitted Silhouette to 5px Canvas Margin', '#38bdf8');
       setTimeout(() => controller.updateStatusIdle(), 1200);
     }
@@ -1492,7 +1456,7 @@
     });
 
     // ========================================================
-    // 8. CLEAN FILE SELECTION & AUDIO PRESERVATION
+    // 8. CLEAN FILE SELECTION
     // ========================================================
     const imgInput = document.getElementById('img-file-input');
     const vidInput = document.getElementById('vid-file-input');
@@ -1536,7 +1500,7 @@
       video.src = currentMediaBlobUrl;
       video.crossOrigin = 'anonymous';
       video.loop = true;
-      video.muted = false;
+      video.muted = true;
       video.playsInline = true;
 
       video.onloadedmetadata = () => {
@@ -1546,15 +1510,8 @@
         }
         mediaLabel.innerText = `Video: ${file.name} (${video.videoWidth}×${video.videoHeight} · ${video.duration.toFixed(1)}s Direct GPU)`;
         videoControlsBox.style.display = 'block';
-        
-        initAudioGraph(video);
 
-        video.play().catch(() => {
-          video.muted = true;
-          video.play();
-          btnVideoMute.innerText = 'Audio: Muted';
-        });
-
+        video.play().catch(() => {});
         userMedia = video;
         updateActiveScreenMedia();
       };
@@ -1620,7 +1577,7 @@
     toggleBtn.addEventListener('click', openStudioPanel);
 
     // ========================================================
-    // 9. SUPERSAMPLED 4K/5K OFFLINE PNG RENDER ENGINE
+    // 9. SUPERSAMPLED OFFLINE PNG RENDER ENGINE
     // ========================================================
     document.getElementById('btn-snapshot').addEventListener('click', () => {
       const statusLabel = document.getElementById('record-status');
@@ -1675,12 +1632,43 @@
     });
 
     // ========================================================
-    // 10. SYNCHRONIZED VIDEO EXPORT WITH POST-ROLL DRAIN
+    // 10. EXACT-TIMED 60 FPS OFFLINE VIDEO RENDER ENGINE (MP4-MUXER)
     // ========================================================
     let isRecordingVideo = false;
 
-    document.getElementById('btn-export-video').addEventListener('click', () => {
+    function seekVideoToTime(video, targetSec) {
+      return new Promise((resolve) => {
+        if (!video || isNaN(targetSec)) {
+          resolve();
+          return;
+        }
+        if (Math.abs(video.currentTime - targetSec) < 0.005) {
+          resolve();
+          return;
+        }
+        let timeoutId;
+        const onSeeked = () => {
+          clearTimeout(timeoutId);
+          video.removeEventListener('seeked', onSeeked);
+          resolve();
+        };
+        timeoutId = setTimeout(() => {
+          video.removeEventListener('seeked', onSeeked);
+          resolve();
+        }, 150);
+        video.addEventListener('seeked', onSeeked);
+        video.currentTime = Math.min(targetSec, video.duration || targetSec);
+      });
+    }
+
+    document.getElementById('btn-export-video').addEventListener('click', async () => {
       if (isRecordingVideo) return;
+
+      if (typeof VideoEncoder === 'undefined' || typeof Mp4Muxer === 'undefined') {
+        alert("WebCodecs API or MP4 Muxer is not supported by your current browser. Please use Chrome, Edge, or a modern Chromium-based browser.");
+        return;
+      }
+
       isRecordingVideo = true;
       isPlayingAnim = false;
 
@@ -1692,106 +1680,117 @@
 
       if (userMedia && isVideoMedia && userMedia.duration && !isNaN(userMedia.duration)) {
         exportDurationSec = userMedia.duration;
+        userMedia.pause();
       }
 
-      statusLabel.innerHTML = `Recording <b>${exportDurationSec.toFixed(1)}s</b> video (Audio + Visual)...`;
+      statusLabel.innerHTML = `Setting up exact 60fps MP4 export for <b>${exportDurationSec.toFixed(1)}s</b>...`;
 
-      const videoStream = canvas.captureStream(60);
-      const combinedTracks = [...videoStream.getVideoTracks()];
+      // H.264 video dimensions must be even numbers
+      const encWidth = (canvas.width % 2 === 0) ? canvas.width : canvas.width - 1;
+      const encHeight = (canvas.height % 2 === 0) ? canvas.height : canvas.height - 1;
+      const fps = 60;
+      const totalFrames = Math.round(exportDurationSec * fps);
+      const stepDurationSec = 1 / fps;
 
-      if (userMedia && isVideoMedia && audioDestinationNode) {
-        const audioTracks = audioDestinationNode.stream.getAudioTracks();
-        if (audioTracks.length > 0) {
-          combinedTracks.push(audioTracks[0]);
-        }
-      }
-
-      const mediaStream = new MediaStream(combinedTracks);
-
-      let mimeType = 'video/webm;codecs=vp9,opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8,opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
-
-      const recorder = new MediaRecorder(mediaStream, { 
-        mimeType: mimeType,
-        videoBitsPerSecond: 40000000
+      const muxer = new Mp4Muxer.Muxer({
+        target: new Mp4Muxer.ArrayBufferTarget(),
+        video: {
+          codec: 'avc',
+          width: encWidth,
+          height: encHeight
+        },
+        fastStart: 'in-memory'
       });
-      
-      const chunks = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) chunks.push(e.data);
-      };
 
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.download = `screencast-${exportDurationSec.toFixed(1)}s-${Date.now()}.webm`;
-        a.href = url;
-        a.click();
-        statusLabel.style.display = 'none';
-        isRecordingVideo = false;
-
-        if (userMedia && isVideoMedia) {
-          userMedia.loop = true;
-          userMedia.play();
+      let encodeError = null;
+      const videoEncoder = new VideoEncoder({
+        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        error: (e) => {
+          console.error("VideoEncoder error:", e);
+          encodeError = e;
         }
-      };
+      });
+
+      // AVC Baseline Profile @ Level 5.1
+      videoEncoder.configure({
+        codec: 'avc1.420033',
+        width: encWidth,
+        height: encHeight,
+        bitrate: 35000000,
+        framerate: fps
+      });
 
       applyKeyframeLerp(0);
+      if (userMedia && isVideoMedia) {
+        await seekVideoToTime(userMedia, 0);
+      }
       renderer.render(scene, camera);
 
-      if (userMedia && isVideoMedia) {
-        userMedia.loop = false;
-        userMedia.currentTime = 0;
-        userMedia.play();
-      }
+      // Deterministic render loop
+      for (let f = 0; f < totalFrames; f++) {
+        if (encodeError) break;
 
-      recorder.start(100);
+        const currentSec = f * stepDurationSec;
 
-      const recStartWallTime = performance.now();
-      const postRollDurationSec = 0.35;
-      let isEndingHold = false;
-      let endingHoldStartTime = 0;
+        // Sync model transforms to timeline
+        const motionProgress = Math.min(1.0, currentSec / motionDurationSec);
+        applyKeyframeLerp(motionProgress);
 
-      function recordFrame() {
-        if (!isRecordingVideo) return;
-
-        const now = performance.now();
-        const elapsedSec = (now - recStartWallTime) / 1000;
-
-        if (!isEndingHold) {
-          const motionProgress = Math.min(1.0, elapsedSec / motionDurationSec);
-          applyKeyframeLerp(motionProgress);
-
-          const remainingSec = Math.max(0, exportDurationSec - elapsedSec);
-          statusLabel.innerHTML = `Recording: <b>${Math.min(elapsedSec, exportDurationSec).toFixed(1)}s</b> / ${exportDurationSec.toFixed(1)}s (Remaining: ${remainingSec.toFixed(1)}s)...`;
-
-          if (elapsedSec >= exportDurationSec) {
-            isEndingHold = true;
-            endingHoldStartTime = now;
-            applyKeyframeLerp(1.0);
-            try { recorder.requestData(); } catch(e){}
-          }
-        } else {
-          applyKeyframeLerp(1.0);
-          const holdElapsed = (now - endingHoldStartTime) / 1000;
-          statusLabel.innerHTML = `Finalizing frames & audio...`;
-
-          if (holdElapsed >= postRollDurationSec) {
-            if (recorder.state === 'recording') {
-              try { recorder.requestData(); } catch(e){}
-              recorder.stop();
-            }
-            return;
-          }
+        // Sync screen media
+        if (userMedia && isVideoMedia) {
+          await seekVideoToTime(userMedia, currentSec);
+          if (currentScreenTexture) currentScreenTexture.needsUpdate = true;
         }
 
+        // Render WebGL frame
         renderer.render(scene, camera);
-        requestAnimationFrame(recordFrame);
+
+        // Create discrete timestamped VideoFrame (in microseconds)
+        const frameTimestampMicros = Math.round(f * (1000000 / fps));
+        const frameDurationMicros = Math.round(1000000 / fps);
+
+        const vFrame = new VideoFrame(canvas, {
+          timestamp: frameTimestampMicros,
+          duration: frameDurationMicros
+        });
+
+        // Keyframe every 1 second (every 60 frames)
+        const isKey = (f % fps === 0);
+        videoEncoder.encode(vFrame, { keyFrame: isKey });
+        vFrame.close();
+
+        // Prevent memory overload
+        if (videoEncoder.encodeQueueSize > 5) {
+          await new Promise((r) => setTimeout(r, 4));
+        } else {
+          await new Promise((r) => setTimeout(r, 0));
+        }
+
+        const pct = Math.round(((f + 1) / totalFrames) * 100);
+        statusLabel.innerHTML = `Encoding MP4: <b>${pct}%</b> (Frame ${f + 1} / ${totalFrames} · ${(currentSec).toFixed(1)}s / ${exportDurationSec.toFixed(1)}s)`;
       }
 
-      requestAnimationFrame(recordFrame);
+      statusLabel.innerHTML = `Finalizing MP4 file...`;
+      await videoEncoder.flush();
+      videoEncoder.close();
+      muxer.finalize();
+
+      const { buffer } = muxer.target;
+      const blob = new Blob([buffer], { type: 'video/mp4' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.download = `mockup-60fps-${exportDurationSec.toFixed(1)}s-${Date.now()}.mp4`;
+      a.href = url;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      statusLabel.style.display = 'none';
+      isRecordingVideo = false;
+
+      if (userMedia && isVideoMedia) {
+        userMedia.loop = true;
+        userMedia.play();
+      }
     });
 
     // ========================================================
@@ -1848,7 +1847,9 @@
         }
       }
 
-      renderer.render(scene, camera);
+      if (!isRecordingVideo) {
+        renderer.render(scene, camera);
+      }
     }
     render();
 
