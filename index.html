@@ -33,13 +33,88 @@
       background: #090d16;
     }
 
-    #bg-wrapper {
+    #workspace {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       z-index: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #06090e;
+      background-image: 
+        radial-gradient(circle at center, rgba(30, 41, 59, 0.4) 0%, rgba(6, 9, 14, 0.85) 100%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 32px 32px, 32px 32px;
+    }
+
+    #canvas-stage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #canvas-frame {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), height 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #canvas-frame.framed {
+      border-radius: 12px;
+      box-shadow: 0 24px 60px -10px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.14);
+    }
+
+    #canvas-frame.framed::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    #bg-checkerboard {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      border-radius: inherit;
+      background-color: #0b0f19;
+      background-image: 
+        linear-gradient(45deg, #151d2c 25%, transparent 25%), 
+        linear-gradient(-45deg, #151d2c 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #151d2c 75%), 
+        linear-gradient(-45deg, transparent 75%, #151d2c 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    }
+
+    #bg-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      border-radius: inherit;
       background: radial-gradient(circle at center, #1e293b 0%, #06090e 100%);
       transition: background 0.1s ease;
     }
@@ -50,7 +125,26 @@
       position: absolute;
       top: 0;
       left: 0;
-      z-index: 1;
+      z-index: 2;
+      border-radius: inherit;
+    }
+
+    #canvas-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      pointer-events: none;
+      z-index: 6;
+      display: none;
     }
 
     #status-badge {
@@ -392,7 +486,7 @@
 </head>
 <body>
 
-  <div id="bg-wrapper"></div>
+  <div id="workspace"></div>
 
   <div id="status-badge">
     <div id="status-dot"></div>
@@ -434,7 +528,7 @@
 
     <div class="section-title">Device & Chassis Geometry</div>
     <div class="control-row">
-      <label>Preset (Canvas)</label>
+      <label>Device Model</label>
       <select id="device-preset">
         <option value="phone" selected>Phone (1080×2400 · 20:9)</option>
         <option value="tablet-16-10">Tablet (1600×2560 · 16:10)</option>
@@ -462,6 +556,18 @@
     <div class="control-row">
       <label>Glass Reflection</label>
       <input type="range" id="glare-intensity" min="0" max="1" step="0.05" value="0.35">
+    </div>
+
+    <div class="section-title">Canvas Frame & Aspect Ratio</div>
+    <div class="control-row">
+      <label>Canvas Size</label>
+      <select id="canvas-preset">
+        <option value="9:16" selected>9:16 (Stories / Reels · 1080×1920)</option>
+        <option value="16:9">16:9 (Landscape · 1920×1080)</option>
+        <option value="1:1">Square (1:1 · 1080×1080)</option>
+        <option value="4:5">4:5 (Portrait Feed · 1080×1350)</option>
+        <option value="responsive">Responsive (Full Window)</option>
+      </select>
     </div>
 
     <div class="section-title">Canvas Backdrop</div>
@@ -546,7 +652,14 @@
     <button class="hud-btn" onclick="alignView('reset')">Reset</button>
   </div>
 
-  <canvas id="viewport"></canvas>
+  <div id="canvas-stage">
+    <div id="canvas-frame">
+      <div id="bg-checkerboard"></div>
+      <div id="bg-wrapper"></div>
+      <canvas id="viewport"></canvas>
+      <div id="canvas-badge">9:16 · 1080×1920</div>
+    </div>
+  </div>
 
   <script>
     // ========================================================
@@ -1208,7 +1321,8 @@
 
       updateStatusIdle() {
         const hText = this.horizonLock ? 'Horizon: Locked' : 'Horizon: Free';
-        this.updateBadge(`${hText} | Mode: ${this.mode.toUpperCase()}`, this.horizonLock ? '#22c55e' : '#64748b');
+        const ratioText = (typeof activeCanvasPreset !== 'undefined' && activeCanvasPreset) ? activeCanvasPreset.toUpperCase() : '9:16';
+        this.updateBadge(`${hText} | Canvas: ${ratioText} | Mode: ${this.mode.toUpperCase()}`, this.horizonLock ? '#22c55e' : '#64748b');
       }
 
       updateBadge(text, color) {
@@ -1217,7 +1331,8 @@
       }
     }
 
-    const controller = new AdvancedViewController(canvas, modelRoot, camera);
+    const canvasStage = document.getElementById('canvas-stage') || canvas;
+    const controller = new AdvancedViewController(canvasStage, modelRoot, camera);
 
     // ========================================================
     // 5. SCREEN-GLASS SILHOUETTE CENTERING & FIT VIEW
@@ -1319,8 +1434,9 @@
       isPlayingAnim = false;
       centerAxis('both');
 
-      const screenW = window.innerWidth;
-      const screenH = window.innerHeight;
+      const canvasFrame = document.getElementById('canvas-frame');
+      const screenW = canvasFrame ? canvasFrame.clientWidth : window.innerWidth;
+      const screenH = canvasFrame ? canvasFrame.clientHeight : window.innerHeight;
 
       const maxAllowedNdcX = Math.max(0.1, (screenW - paddingPixels * 2) / screenW);
       const maxAllowedNdcY = Math.max(0.1, (screenH - paddingPixels * 2) / screenH);
@@ -1349,7 +1465,8 @@
       }
 
       centerAxis('both');
-      controller.updateBadge('Fitted Silhouette to 5px Canvas Margin', '#38bdf8');
+      const ratioName = (typeof activeCanvasPreset !== 'undefined' && activeCanvasPreset) ? activeCanvasPreset.toUpperCase() : '9:16';
+      controller.updateBadge(`Fitted to ${ratioName} Canvas (5px Margin)`, '#38bdf8');
       setTimeout(() => controller.updateStatusIdle(), 1200);
     }
 
@@ -1582,6 +1699,126 @@
       if (glareMaterial) glareMaterial.opacity = parseFloat(e.target.value);
     });
 
+    // ========================================================
+    // CANVAS SIZE & ASPECT RATIO ENGINE
+    // ========================================================
+    const CANVAS_RATIOS = {
+      '9:16': { ratio: 9 / 16, label: '9:16 · Stories / Reels', exportW: 2160, exportH: 3840, videoW: 1080, videoH: 1920 },
+      '16:9': { ratio: 16 / 9, label: '16:9 · Landscape', exportW: 3840, exportH: 2160, videoW: 1920, videoH: 1080 },
+      '1:1': { ratio: 1.0, label: '1:1 · Square', exportW: 2160, exportH: 2160, videoW: 1080, videoH: 1080 },
+      '4:5': { ratio: 4 / 5, label: '4:5 · Feed', exportW: 2160, exportH: 2700, videoW: 1080, videoH: 1350 },
+      'responsive': { ratio: null, label: 'Responsive', exportW: null, exportH: null, videoW: null, videoH: null }
+    };
+
+    let activeCanvasPreset = '9:16';
+
+    function setCanvasPreset(preset, autoFit = true) {
+      if (!CANVAS_RATIOS[preset]) preset = '9:16';
+      activeCanvasPreset = preset;
+
+      const select = document.getElementById('canvas-preset');
+      if (select && select.value !== preset) select.value = preset;
+
+      applyCanvasLayout();
+
+      if (autoFit) {
+        fitModelToViewport(5);
+      }
+
+      const info = CANVAS_RATIOS[preset];
+      controller.updateBadge(`Canvas Size: ${info.label}`, '#38bdf8');
+      setTimeout(() => controller.updateStatusIdle(), 1200);
+    }
+
+    function applyCanvasLayout() {
+      const canvasFrame = document.getElementById('canvas-frame');
+      const canvasBadge = document.getElementById('canvas-badge');
+      const info = CANVAS_RATIOS[activeCanvasPreset] || CANVAS_RATIOS['9:16'];
+
+      let targetW, targetH;
+
+      if (activeCanvasPreset === 'responsive' || !info.ratio) {
+        targetW = window.innerWidth;
+        targetH = window.innerHeight;
+        if (canvasFrame) {
+          canvasFrame.classList.remove('framed');
+          canvasFrame.style.width = '100%';
+          canvasFrame.style.height = '100%';
+        }
+        if (canvasBadge) canvasBadge.style.display = 'none';
+      } else {
+        const isMobile = window.innerWidth < 768;
+        const paddingX = isMobile ? 12 : 48;
+        const paddingTop = isMobile ? 54 : 50;
+        const paddingBottom = isMobile ? 64 : 60;
+
+        const maxW = Math.max(160, window.innerWidth - paddingX * 2);
+        const maxH = Math.max(160, window.innerHeight - (paddingTop + paddingBottom));
+
+        const aspect = info.ratio;
+        if (maxW / maxH > aspect) {
+          targetH = maxH;
+          targetW = Math.round(targetH * aspect);
+        } else {
+          targetW = maxW;
+          targetH = Math.round(targetW / aspect);
+        }
+
+        targetW = Math.floor(targetW / 2) * 2;
+        targetH = Math.floor(targetH / 2) * 2;
+
+        if (canvasFrame) {
+          canvasFrame.classList.add('framed');
+          canvasFrame.style.width = targetW + 'px';
+          canvasFrame.style.height = targetH + 'px';
+        }
+        if (canvasBadge) {
+          canvasBadge.style.display = 'block';
+          canvasBadge.innerText = `${activeCanvasPreset} · ${info.videoW}×${info.videoH}`;
+        }
+      }
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(targetW, targetH);
+
+      if (canvas.width % 2 !== 0) canvas.width -= 1;
+      if (canvas.height % 2 !== 0) canvas.height -= 1;
+
+      camera.aspect = targetW / targetH;
+      camera.updateProjectionMatrix();
+
+      updateExportButtonLabels();
+    }
+
+    function updateExportButtonLabels() {
+      const btnSnapshot = document.getElementById('btn-snapshot');
+      const btnExportVideo = document.getElementById('btn-export-video');
+      const info = CANVAS_RATIOS[activeCanvasPreset] || CANVAS_RATIOS['9:16'];
+
+      if (!btnSnapshot || !btnExportVideo) return;
+
+      if (activeCanvasPreset === 'responsive') {
+        const asp = camera.aspect;
+        let pw = 3840, ph = Math.round(3840 / asp);
+        if (asp < 1) { ph = 3840; pw = Math.round(3840 * asp); }
+        pw = Math.floor(pw / 2) * 2;
+        ph = Math.floor(ph / 2) * 2;
+        btnSnapshot.innerText = `Export Image (Ultra HD ${pw}×${ph} PNG)`;
+        btnExportVideo.innerText = `Export Video (60fps MP4)`;
+      } else {
+        btnSnapshot.innerText = `Export Image (${info.exportW}×${info.exportH} PNG)`;
+        btnExportVideo.innerText = `Export Video (${info.videoW}×${info.videoH} 60fps MP4)`;
+      }
+    }
+
+    const canvasPresetSelect = document.getElementById('canvas-preset');
+    if (canvasPresetSelect) {
+      canvasPresetSelect.addEventListener('change', (e) => {
+        setCanvasPreset(e.target.value, true);
+      });
+    }
+
     const sidePanel = document.getElementById('side-panel');
     const toggleBtn = document.getElementById('btn-toggle-menu');
 
@@ -1599,19 +1836,36 @@
     toggleBtn.addEventListener('click', openStudioPanel);
 
     // ========================================================
-    // 9. DEDICATED 4K ULTRA HD PNG RENDER ENGINE
+    // 9. DEDICATED ULTRA HD PNG RENDER ENGINE
     // ========================================================
     document.getElementById('btn-snapshot').addEventListener('click', () => {
       const renderControls = document.getElementById('render-controls');
       const statusLabel = document.getElementById('record-status');
       renderControls.style.display = 'block';
-      statusLabel.innerText = 'Rendering 4K Ultra HD PNG (3840×2160)...';
+
+      const info = CANVAS_RATIOS[activeCanvasPreset] || CANVAS_RATIOS['9:16'];
+      let targetWidth, targetHeight;
+
+      if (activeCanvasPreset === 'responsive' || !info.exportW) {
+        const asp = camera.aspect;
+        if (asp >= 1) {
+          targetWidth = 3840;
+          targetHeight = Math.round(targetWidth / asp);
+        } else {
+          targetHeight = 3840;
+          targetWidth = Math.round(targetHeight * asp);
+        }
+      } else {
+        targetWidth = info.exportW;
+        targetHeight = info.exportH;
+      }
+
+      targetWidth = Math.floor(targetWidth / 2) * 2;
+      targetHeight = Math.floor(targetHeight / 2) * 2;
+
+      statusLabel.innerText = `Rendering Ultra HD PNG (${targetWidth}×${targetHeight})...`;
 
       setTimeout(() => {
-        const targetWidth = 3840;
-        const currentAspect = camera.aspect;
-        const targetHeight = Math.round(targetWidth / currentAspect);
-
         const offCanvas = document.createElement('canvas');
         offCanvas.width = targetWidth;
         offCanvas.height = targetHeight;
@@ -1643,7 +1897,8 @@
         offCanvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.download = `mockup-ultra-hd-4K-${Date.now()}.png`;
+          const ratioName = activeCanvasPreset.replace(':', '-');
+          a.download = `mockup-${ratioName}-${targetWidth}x${targetHeight}-${Date.now()}.png`;
           a.href = url;
           a.click();
           URL.revokeObjectURL(url);
@@ -1690,12 +1945,47 @@
         exportDurationSec = userMedia.duration;
       }
 
-      statusLabel.innerHTML = `Preparing zero-drop 60 FPS pipeline (${exportDurationSec.toFixed(1)}s)...`;
+      const info = CANVAS_RATIOS[activeCanvasPreset] || CANVAS_RATIOS['9:16'];
+      let vidW, vidH;
+      if (activeCanvasPreset === 'responsive' || !info.videoW) {
+        const asp = camera.aspect;
+        if (asp >= 1) {
+          vidW = 1920;
+          vidH = Math.round(1920 / asp);
+        } else {
+          vidH = 1920;
+          vidW = Math.round(1920 * asp);
+        }
+      } else {
+        vidW = info.videoW;
+        vidH = info.videoH;
+      }
+      vidW = Math.floor(vidW / 2) * 2;
+      vidH = Math.floor(vidH / 2) * 2;
 
-      // Even dimensions required by H.264
-      const encWidth = (canvas.width % 2 === 0) ? canvas.width : canvas.width - 1;
-      const encHeight = (canvas.height % 2 === 0) ? canvas.height : canvas.height - 1;
+      statusLabel.innerHTML = `Preparing zero-drop 60 FPS pipeline (${vidW}×${vidH} · ${exportDurationSec.toFixed(1)}s)...`;
+
       const fps = 60;
+      const encWidth = vidW;
+      const encHeight = vidH;
+
+      const canvasFrame = document.getElementById('canvas-frame');
+      const prevDisplayW = canvasFrame ? canvasFrame.clientWidth : window.innerWidth;
+      const prevDisplayH = canvasFrame ? canvasFrame.clientHeight : window.innerHeight;
+      const prevDpr = renderer.getPixelRatio();
+
+      renderer.setPixelRatio(1);
+      renderer.setSize(vidW, vidH, false);
+      camera.aspect = vidW / vidH;
+      camera.updateProjectionMatrix();
+
+      function restoreDisplay() {
+        renderer.setPixelRatio(prevDpr);
+        renderer.setSize(prevDisplayW, prevDisplayH, false);
+        camera.aspect = prevDisplayW / prevDisplayH;
+        camera.updateProjectionMatrix();
+        renderer.render(scene, camera);
+      }
 
       const muxer = new Mp4Muxer.Muxer({
         target: new Mp4Muxer.ArrayBufferTarget(),
@@ -1786,7 +2076,7 @@
               encodedCount++;
 
               const pct = Math.min(100, Math.round((mediaSec / exportDurationSec) * 100));
-              statusLabel.innerHTML = `Encoding 60 FPS MP4: <b>${pct}%</b> (${mediaSec.toFixed(1)}s / ${exportDurationSec.toFixed(1)}s)`;
+              statusLabel.innerHTML = `Encoding 60 FPS MP4 (${vidW}×${vidH}): <b>${pct}%</b> (${mediaSec.toFixed(1)}s / ${exportDurationSec.toFixed(1)}s)`;
             }
 
             if (userMedia.ended || mediaSec >= (exportDurationSec - 0.02)) {
@@ -1824,17 +2114,18 @@
             await new Promise((r) => setTimeout(r, 4));
           } else if (f % 15 === 0) {
             const pct = Math.round(((f + 1) / totalFrames) * 100);
-            statusLabel.innerHTML = `Encoding 60 FPS MP4: <b>${pct}%</b> (${exactSec.toFixed(1)}s / ${exportDurationSec.toFixed(1)}s)`;
+            statusLabel.innerHTML = `Encoding 60 FPS MP4 (${vidW}×${vidH}): <b>${pct}%</b> (${exactSec.toFixed(1)}s / ${exportDurationSec.toFixed(1)}s)`;
             await new Promise((r) => setTimeout(r, 0));
           }
         }
       }
 
-      if (cancelExportRequested) {
-        videoEncoder.close();
+      if (cancelExportRequested || encodeError) {
+        try { videoEncoder.close(); } catch(e) {}
         renderControls.style.display = 'none';
         isRecordingVideo = false;
         cancelExportRequested = false;
+        restoreDisplay();
         if (userMedia && isVideoMedia) {
           userMedia.playbackRate = 1.0;
           userMedia.loop = true;
@@ -1852,13 +2143,15 @@
       const blob = new Blob([buffer], { type: 'video/mp4' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.download = `mockup-60fps-${exportDurationSec.toFixed(1)}s-${Date.now()}.mp4`;
+      const ratioName = activeCanvasPreset.replace(':', '-');
+      a.download = `mockup-${ratioName}-${vidW}x${vidH}-60fps-${exportDurationSec.toFixed(1)}s-${Date.now()}.mp4`;
       a.href = url;
       a.click();
       URL.revokeObjectURL(url);
 
       renderControls.style.display = 'none';
       isRecordingVideo = false;
+      restoreDisplay();
 
       if (userMedia && isVideoMedia) {
         userMedia.playbackRate = 1.0;
@@ -1900,7 +2193,10 @@
       centerAxis('both');
     }
 
+    // Initialize Canvas & View
+    setCanvasPreset('9:16', false);
     alignView('isometric');
+    fitModelToViewport(5);
 
     // ========================================================
     // 12. RENDER LOOP
@@ -1933,9 +2229,7 @@
     render();
 
     window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      applyCanvasLayout();
     });
   </script>
 </body>

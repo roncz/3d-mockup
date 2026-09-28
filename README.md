@@ -14,21 +14,22 @@ A standalone, single-file HTML/WebGL application built with Three.js to compose,
 ---
 ### Features
 - **Geometry Presets:** Procedural chassis models for Modern Phones (20:9), Tablets (16:10 and 3:4), Laptops, and Frameless display panes.
+- **Canvas Aspect Ratios:** Selectable canvas formats including **9:16** (Stories / Reels), **16:9** (Landscape), **Square (1:1)**, **4:5**, and **Responsive**.
 - **Media Screencasts:** Direct GPU texture streaming for custom images and MP4/WebM videos with hardware-accelerated aspect mapping and audio pass-through.
 - **Dynamic Overlays:** Vector-rendered Android status bar overlay (Clock, Cellular signal, Wi-Fi, Battery) that stays sharp at extreme resolutions.
 - **Material Controls:** Adjustable chassis color, chassis opacity, glass glare/reflection intensity, and canvas background transparency.
 - **Keyframe Engine:** Interpolate between two states (**Keyframe A** and **Keyframe B**) with independent motion duration, scrub preview, and easing.
 - **Flexible Space Controls:** View-space rotation with Horizon Lock, 2D screen-plane translation, and local 3D chassis sliding.
 - **Ultra-HD Production Exports:**
-  - **PNG:** Headless offline rendering up to **5K (5120×2880)** with 8× MSAA.
-  - **WebM:** Hardware-accelerated 60 FPS recording at 40 Mbps with embedded original screencast audio and automated buffer-drain post-roll to eliminate clipped endings.
+  - **PNG:** High-resolution offline rendering matched to the selected canvas aspect ratio.
+  - **MP4:** Hardware-accelerated 60 FPS recording with zero dropped frames, embedded screencast audio, and canvas ratio synchronization.
 ---
 
 ### Quick Start
 1. Open `index.html` in any modern web browser (desktop or mobile).
-2. Click **Upload Image** or **Upload Video** to apply content to the screen.
-3. Use touch or mouse gestures to position the device.
-4. Set keyframes and click **Export Image** or **Export Video**.
+2. Select your **Device Model** and **Canvas Size** (9:16, 16:9, Square, etc.).
+3. Click **Upload Image** or **Upload Video** to apply content to the screen.
+4. Position the device, set keyframes, and click **Export Image** or **Export Video**.
 ---
 
 ### Navigation & Controls
@@ -53,11 +54,8 @@ A standalone, single-file HTML/WebGL application built with Three.js to compose,
 ---
 
 #### Exporting
-- **PNG Snapshots:** Select your preferred target resolution (**2K**, **4K**, or **5K**) in the side panel and click **Export Image (PNG)**.
-- **WebM Video:**
-  - If a video screencast is loaded, the exported video duration automatically matches the source video runtime, while 3D keyframe motion follows the configured **Animation Time**.
-  - Includes original audio track.
-  - Encoded with high-bitrate VP9/Opus at 60 FPS.
+- **PNG Snapshots:** Renders an Ultra HD image matched to your active canvas aspect ratio (e.g. 2160×3840 for 9:16, 3840×2160 for 16:9, 2160×2160 for Square).
+- **MP4 Video:** Zero-drop 60 FPS MP4 video encoded to match the canvas aspect ratio (1080×1920 for 9:16, 1920×1080 for 16:9, 1080×1080 for Square), with duration synced to screencasts or animation keyframes.
 
 ## Disclaimer
 
