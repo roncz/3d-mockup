@@ -972,16 +972,81 @@
         opacity: chassisAlpha
       });
 
-      screenMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      screenMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
       updateActiveScreenMedia();
 
-      glareMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
+      glareMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          uOpacity: { value: glareAlpha },
+          uKeyLightDir: { value: new THREE.Vector3(5, 8, 5).normalize() },
+          uFillLightDir: { value: new THREE.Vector3(-6, -4, -3).normalize() },
+          uKeyColor: { value: new THREE.Color(0xffffff) },
+          uFillColor: { value: new THREE.Color(0x38bdf8) }
+        },
+        vertexShader: `
+          varying vec3 vWorldNormal;
+          varying vec3 vWorldPosition;
+          varying vec2 vUv;
+
+          void main() {
+            vUv = uv;
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPos.xyz;
+            vWorldNormal = normalize(mat3(modelMatrix) * normal);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float uOpacity;
+          uniform vec3 uKeyLightDir;
+          uniform vec3 uFillLightDir;
+          uniform vec3 uKeyColor;
+          uniform vec3 uFillColor;
+
+          varying vec3 vWorldNormal;
+          varying vec3 vWorldPosition;
+          varying vec2 vUv;
+
+          void main() {
+            if (uOpacity <= 0.001) discard;
+
+            vec3 N = normalize(vWorldNormal);
+            vec3 V = normalize(cameraPosition - vWorldPosition);
+
+            // 1. Sleek Key Light Specular Gleam (Blinn-Phong with strict zero-bleed floor)
+            vec3 L_key = normalize(uKeyLightDir);
+            vec3 H_key = normalize(L_key + V);
+            float NdotL_key = max(0.0, dot(N, L_key));
+            float specRaw = pow(max(0.0, dot(N, H_key)), 64.0) * smoothstep(0.0, 0.12, NdotL_key);
+            float spec = smoothstep(0.04, 0.75, specRaw);
+
+            // 2. Studio Softbox Light Strip Reflection
+            vec3 R = reflect(-V, N);
+            vec3 R_cam = normalize((viewMatrix * vec4(R, 0.0)).xyz);
+            // Angled studio softbox reflection strip across camera view
+            float d = (R_cam.x * 0.72 + R_cam.y * 0.69) - 0.22;
+            float softboxRaw = exp(-d * d * 28.0);
+            float softbox = smoothstep(0.08, 0.82, softboxRaw);
+
+            // 3. Subtle Glancing Fresnel Rim (only at extreme grazing angles > 70 deg)
+            float NdotV = clamp(dot(N, V), 0.0, 1.0);
+            float fresnelRaw = pow(1.0 - NdotV, 6.0);
+            float fresnel = smoothstep(0.06, 0.5, fresnelRaw);
+
+            // Total specular sheen
+            float totalGleam = spec * 1.3 + softbox * 0.55 + fresnel * 0.35;
+
+            // Strict zero floor: guarantee that black parts of the screen remain 100% inky black!
+            if (totalGleam < 0.002) discard;
+
+            vec3 gleamColor = mix(uKeyColor, uFillColor, 0.12 * softbox);
+            gl_FragColor = vec4(gleamColor * totalGleam, uOpacity);
+          }
+        `,
         transparent: true,
-        opacity: glareAlpha,
-        roughness: 0.1,
-        metalness: 0.9,
-        blending: THREE.AdditiveBlending
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        toneMapped: false
       });
 
       let w = 1.96, h = 4.36, d = 0.12, r = 0.25, bezel = 0.05;
@@ -1008,7 +1073,7 @@
         const showStatus = document.getElementById('toggle-status-bar').checked;
         const statusGeo = new THREE.PlaneGeometry(sW, (sW / 1080) * 140);
         statusTexture = createStatusBarOverlayTexture(2160);
-        const statusMat = new THREE.MeshBasicMaterial({ map: statusTexture, transparent: true });
+        const statusMat = new THREE.MeshBasicMaterial({ map: statusTexture, transparent: true, toneMapped: false });
         statusMesh = new THREE.Mesh(statusGeo, statusMat);
         statusMesh.position.set(0, (sH / 2) - ((sW / 1080) * 70), d / 2 + 0.016);
         statusMesh.visible = showStatus;
@@ -1696,7 +1761,13 @@
     });
 
     document.getElementById('glare-intensity').addEventListener('input', (e) => {
-      if (glareMaterial) glareMaterial.opacity = parseFloat(e.target.value);
+      const val = parseFloat(e.target.value);
+      if (glareMaterial) {
+        glareMaterial.opacity = val;
+        if (glareMaterial.uniforms && glareMaterial.uniforms.uOpacity) {
+          glareMaterial.uniforms.uOpacity.value = val;
+        }
+      }
     });
 
     // ========================================================
