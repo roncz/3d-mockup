@@ -18,7 +18,7 @@ A standalone, single-file HTML/WebGL application built with Three.js to compose,
 - **Media Screencasts:** Direct GPU texture streaming for custom images and MP4/WebM videos with hardware-accelerated aspect mapping and audio pass-through.
 - **Dynamic Overlays:** Vector-rendered Android status bar overlay (Clock, Cellular signal, Wi-Fi, Battery) that stays sharp at extreme resolutions.
 - **Material Controls:** Adjustable chassis color, chassis opacity, glass glare/reflection intensity, and canvas background transparency.
-- **Keyframe Engine:** Interpolate between two states (**Keyframe A** and **Keyframe B**) with independent motion duration, scrub preview, and easing.
+- **Keyframe Timeline Engine:** Interactive timeline scrubber with visual markers, live preview playback, step navigation, and smooth easing across multiple keyframes. Duration is configurable for images and automatically synced to video screencasts.
 - **Flexible Space Controls:** View-space rotation with Horizon Lock, 2D screen-plane translation, and local 3D chassis sliding.
 - **Ultra-HD Production Exports:**
   - **PNG:** High-resolution offline rendering matched to the selected canvas aspect ratio.
@@ -56,6 +56,8 @@ A standalone, single-file HTML/WebGL application built with Three.js to compose,
 #### Exporting
 - **PNG Snapshots:** Renders an Ultra HD image matched to your active canvas aspect ratio (e.g. 2160×3840 for 9:16, 3840×2160 for 16:9, 2160×2160 for Square).
 - **MP4 Video:** Zero-drop 60 FPS MP4 video encoded to match the canvas aspect ratio (1080×1920 for 9:16, 1920×1080 for 16:9, 1080×1080 for Square), with duration synced to screencasts or animation keyframes.
+
+> **Note:** Keep the browser tab in the foreground while exporting images or videos to prevent browser background throttling from pausing or slowing down the render pipeline.
 
 ## Disclaimer
 

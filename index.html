@@ -455,10 +455,120 @@
       flex-shrink: 0;
     }
 
-    #anim-scrubber-container {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid var(--panel-border);
+    .timeline-container {
+      margin: 10px 0 6px 0;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .timeline-track-wrap {
+      position: relative;
+      width: 100%;
+      height: 26px;
+      display: flex;
+      align-items: center;
+    }
+
+    .timeline-slider {
+      width: 100% !important;
+      position: relative;
+      z-index: 2;
+      background: transparent;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .timeline-markers-bar {
+      position: absolute;
+      left: 7px;
+      right: 7px;
+      top: 50%;
+      height: 0;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .kf-marker {
+      position: absolute;
+      top: -6px;
+      width: 12px;
+      height: 12px;
+      background: #38bdf8;
+      border: 1.5px solid #ffffff;
+      border-radius: 2px;
+      transform: translateX(-50%) rotate(45deg);
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .kf-marker:hover {
+      background: #60a5fa;
+      transform: translateX(-50%) rotate(45deg) scale(1.25);
+    }
+
+    .kf-marker.active {
+      background: #fbbf24;
+      border-color: #ffffff;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.9);
+      transform: translateX(-50%) rotate(45deg) scale(1.3);
+      z-index: 4;
+    }
+
+    .kf-chips-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+      max-height: 110px;
+      overflow-y: auto;
+      padding: 2px 0;
+    }
+
+    .kf-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+
+    .kf-chip:hover {
+      background: rgba(51, 65, 85, 0.9);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .kf-chip.active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #38bdf8;
+      color: #bae6fd;
+      font-weight: 600;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+    }
+
+    .kf-chip .del-kf {
+      font-size: 13px;
+      line-height: 1;
+      color: var(--text-muted);
+      opacity: 0.6;
+      padding: 0 2px;
+      border-radius: 3px;
+      transition: opacity 0.15s, color 0.15s;
+    }
+
+    .kf-chip .del-kf:hover {
+      opacity: 1;
+      color: #f87171;
     }
 
     @media (max-width: 768px) {
@@ -581,37 +691,50 @@
     </div>
 
     <div class="section-title">Keyframe Animation Engine</div>
-    <div class="btn-grid">
-      <button class="btn" id="btn-set-kfa">Set Start (A)</button>
-      <button class="btn" id="btn-set-kfb">Set End (B)</button>
-    </div>
-    <div class="btn-grid">
-      <button class="btn" id="btn-goto-kfa">Go to A</button>
-      <button class="btn" id="btn-goto-kfb">Go to B</button>
-    </div>
 
-    <div class="control-row" style="margin-top: 8px;">
-      <label>Animation Time (A&rarr;B)</label>
+    <div class="control-row" id="row-anim-duration">
+      <label>Total Duration</label>
       <div style="display:flex; align-items:center; gap:4px;">
         <input type="number" id="anim-duration" min="0.5" max="120" step="0.1" value="5.0">
         <span style="font-size:11px; color:var(--text-muted);">s</span>
       </div>
     </div>
     <div class="control-row" id="row-media-duration" style="display:none;">
-      <label>Screencast Total Time</label>
+      <label>Screencast Duration</label>
       <span id="label-media-duration" style="font-size:12px; color:#38bdf8; font-weight:600;">5.0s</span>
     </div>
 
-    <div id="anim-scrubber-container">
-      <div class="control-row">
-        <label>Scrub Preview</label>
-        <input type="range" id="anim-scrub" min="0" max="1" step="0.001" value="0" style="flex:1;">
+    <!-- Timeline Scrubber & Visual Markers -->
+    <div class="timeline-container">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; font-size:11px; color:var(--text-muted);">
+        <span>Timeline Scrubber</span>
+        <span id="timeline-time-display" style="font-weight:600; color:#38bdf8; font-variant-numeric:tabular-nums;">0.0s / 5.0s</span>
       </div>
-      <div class="btn-grid">
-        <button class="btn" id="btn-play-anim">Play Preview</button>
-        <button class="btn" id="btn-stop-anim">Stop</button>
+      <div class="timeline-track-wrap">
+        <input type="range" id="anim-scrub" class="timeline-slider" min="0" max="1" step="0.001" value="0">
+        <div id="timeline-markers-bar" class="timeline-markers-bar"></div>
       </div>
     </div>
+
+    <!-- Keyframe Actions -->
+    <div class="btn-grid" style="grid-template-columns: 1fr 1fr; margin-top:2px;">
+      <button class="btn primary" id="btn-add-kf" title="Add keyframe with current 3D view at playhead time">+ Keyframe</button>
+      <button class="btn" id="btn-update-kf" title="Update selected or nearest keyframe with current 3D view">Update Pose</button>
+    </div>
+
+    <!-- Playback Navigation Controls -->
+    <div class="btn-grid" style="grid-template-columns: 1fr 2fr 1fr; margin-top:4px;">
+      <button class="btn" id="btn-prev-kf" title="Jump to previous keyframe">&#9664;&#10073; Prev</button>
+      <button class="btn" id="btn-play-anim" title="Play or Stop Preview">Play Preview</button>
+      <button class="btn" id="btn-next-kf" title="Jump to next keyframe">Next &#10073;&#9654;</button>
+    </div>
+
+    <!-- Keyframe Chips List -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+      <span style="font-size:11px; color:var(--text-muted);">Timeline Keyframes (<span id="kf-count">2</span>)</span>
+      <button id="btn-reset-kf" style="background:none; border:none; color:var(--text-muted); font-size:10.5px; cursor:pointer; text-decoration:underline;">Reset A&rarr;B</button>
+    </div>
+    <div id="kf-chips-list" class="kf-chips-list"></div>
 
     <div class="section-title">Production Quality Export</div>
     <button class="btn primary" id="btn-snapshot">Export Image (4K Ultra HD PNG)</button>
@@ -734,6 +857,27 @@
 
     function createRoundedPlane(w, h, radius) {
       const shape = createRoundedRectShape(w, h, radius);
+      const geom = new THREE.ShapeGeometry(shape, 32);
+      const pos = geom.attributes.position;
+      const uvs = [];
+      for (let i = 0; i < pos.count; i++) {
+        uvs.push((pos.getX(i) + w / 2) / w, (pos.getY(i) + h / 2) / h);
+      }
+      geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      return geom;
+    }
+
+    function createTopRoundedPlane(w, h, radius) {
+      const r = Math.min(radius, h, w / 2);
+      const shape = new THREE.Shape();
+      const x = -w / 2, y = -h / 2;
+      shape.moveTo(x, y);
+      shape.lineTo(x + w, y);
+      shape.lineTo(x + w, y + h - r);
+      shape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      shape.lineTo(x + r, y + h);
+      shape.quadraticCurveTo(x, y + h, x, y + h - r);
+      shape.lineTo(x, y);
       const geom = new THREE.ShapeGeometry(shape, 32);
       const pos = geom.attributes.position;
       const uvs = [];
@@ -1071,11 +1215,13 @@
         modelRoot.add(sMesh);
 
         const showStatus = document.getElementById('toggle-status-bar').checked;
-        const statusGeo = new THREE.PlaneGeometry(sW, (sW / 1080) * 140);
+        const barH = (sW / 1080) * 140;
+        const statusGeo = createTopRoundedPlane(sW, barH, sR);
+        if (statusTexture) statusTexture.dispose();
         statusTexture = createStatusBarOverlayTexture(2160);
-        const statusMat = new THREE.MeshBasicMaterial({ map: statusTexture, transparent: true, toneMapped: false });
+        const statusMat = new THREE.MeshBasicMaterial({ map: statusTexture, transparent: true, depthWrite: false, toneMapped: false });
         statusMesh = new THREE.Mesh(statusGeo, statusMat);
-        statusMesh.position.set(0, (sH / 2) - ((sW / 1080) * 70), d / 2 + 0.016);
+        statusMesh.position.set(0, (sH / 2) - (barH / 2), d / 2 + 0.016);
         statusMesh.visible = showStatus;
         modelRoot.add(statusMesh);
 
@@ -1570,85 +1716,391 @@
     updateBackdrop();
 
     // ========================================================
-    // 7. KEYFRAME ANIMATION ENGINE
+    // 7. MULTI-KEYFRAME TIMELINE ANIMATION ENGINE
     // ========================================================
-    const keyframes = {
-      A: {
+    let timelineKeyframes = [
+      {
+        id: 1,
+        timePercent: 0.0,
         pos: new THREE.Vector3(0, 0, 0),
         quat: new THREE.Quaternion().identity(),
         zoom: isMobileView ? 8.5 : 7.5
       },
-      B: {
+      {
+        id: 2,
+        timePercent: 1.0,
         pos: new THREE.Vector3(0, 0, 0),
         quat: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2.3),
         zoom: isMobileView ? 8.5 : 7.5
       }
-    };
+    ];
 
+    let activeKeyframeId = 1;
     let isPlayingAnim = false;
     let animStartTime = 0;
     let animDurationMs = 5000;
     let totalPlaybackDurationMs = 5000;
 
-    function captureKeyframe(slot) {
-      keyframes[slot].pos.copy(modelRoot.position);
-      keyframes[slot].quat.copy(modelRoot.quaternion);
-      keyframes[slot].zoom = camera.position.z;
-
-      const btn = document.getElementById(`btn-set-kf${slot.toLowerCase()}`);
-      btn.classList.add('active-kf');
-      setTimeout(() => btn.classList.remove('active-kf'), 400);
+    function getAnimDurationSec() {
+      if (userMedia && isVideoMedia && userMedia.duration && !isNaN(userMedia.duration)) {
+        return userMedia.duration;
+      }
+      const durInput = document.getElementById('anim-duration');
+      return Math.max(0.1, parseFloat(durInput ? durInput.value : 5.0) || 5.0);
     }
 
     function applyKeyframeLerp(t) {
+      if (!timelineKeyframes || timelineKeyframes.length === 0) return;
       const clampedT = Math.max(0, Math.min(1, t));
-      const factor = (1 - Math.cos(clampedT * Math.PI)) / 2;
-      modelRoot.position.lerpVectors(keyframes.A.pos, keyframes.B.pos, factor);
-      modelRoot.quaternion.slerpQuaternions(keyframes.A.quat, keyframes.B.quat, factor);
-      camera.position.z = THREE.MathUtils.lerp(keyframes.A.zoom, keyframes.B.zoom, factor);
-      if (controller.horizonLock) controller.enforceHorizonLock();
+
+      if (timelineKeyframes.length === 1) {
+        const kf = timelineKeyframes[0];
+        modelRoot.position.copy(kf.pos);
+        modelRoot.quaternion.copy(kf.quat);
+        camera.position.z = kf.zoom;
+        if (controller && controller.horizonLock) controller.enforceHorizonLock();
+        return;
+      }
+
+      if (clampedT <= timelineKeyframes[0].timePercent) {
+        const kf = timelineKeyframes[0];
+        modelRoot.position.copy(kf.pos);
+        modelRoot.quaternion.copy(kf.quat);
+        camera.position.z = kf.zoom;
+        if (controller && controller.horizonLock) controller.enforceHorizonLock();
+        return;
+      }
+
+      const lastIdx = timelineKeyframes.length - 1;
+      if (clampedT >= timelineKeyframes[lastIdx].timePercent) {
+        const kf = timelineKeyframes[lastIdx];
+        modelRoot.position.copy(kf.pos);
+        modelRoot.quaternion.copy(kf.quat);
+        camera.position.z = kf.zoom;
+        if (controller && controller.horizonLock) controller.enforceHorizonLock();
+        return;
+      }
+
+      let kfA = timelineKeyframes[0];
+      let kfB = timelineKeyframes[1];
+      for (let i = 0; i < timelineKeyframes.length - 1; i++) {
+        if (clampedT >= timelineKeyframes[i].timePercent && clampedT <= timelineKeyframes[i + 1].timePercent) {
+          kfA = timelineKeyframes[i];
+          kfB = timelineKeyframes[i + 1];
+          break;
+        }
+      }
+
+      const span = kfB.timePercent - kfA.timePercent;
+      const localT = span > 0 ? (clampedT - kfA.timePercent) / span : 0;
+      const factor = (1 - Math.cos(localT * Math.PI)) / 2;
+
+      modelRoot.position.lerpVectors(kfA.pos, kfB.pos, factor);
+      modelRoot.quaternion.slerpQuaternions(kfA.quat, kfB.quat, factor);
+      camera.position.z = THREE.MathUtils.lerp(kfA.zoom, kfB.zoom, factor);
+
+      if (controller && controller.horizonLock) controller.enforceHorizonLock();
     }
 
-    document.getElementById('btn-set-kfa').addEventListener('click', () => captureKeyframe('A'));
-    document.getElementById('btn-set-kfb').addEventListener('click', () => captureKeyframe('B'));
+    function renderTimelineUI() {
+      const scrub = document.getElementById('anim-scrub');
+      const curT = scrub ? parseFloat(scrub.value) : 0;
+      const totalDurSec = getAnimDurationSec();
 
-    document.getElementById('btn-goto-kfa').addEventListener('click', () => {
-      isPlayingAnim = false;
-      document.getElementById('anim-scrub').value = 0;
+      const timeDisplay = document.getElementById('timeline-time-display');
+      if (timeDisplay) {
+        const curSec = (curT * totalDurSec).toFixed(1);
+        timeDisplay.innerText = `${curSec}s / ${totalDurSec.toFixed(1)}s`;
+      }
+
+      const kfCount = document.getElementById('kf-count');
+      if (kfCount) kfCount.innerText = timelineKeyframes.length;
+
+      // Update markers along the slider track
+      const markersBar = document.getElementById('timeline-markers-bar');
+      if (markersBar) {
+        markersBar.innerHTML = '';
+        timelineKeyframes.forEach((kf, idx) => {
+          const marker = document.createElement('div');
+          marker.className = 'kf-marker';
+          marker.style.left = `${kf.timePercent * 100}%`;
+          marker.title = `Keyframe #${idx + 1} at ${(kf.timePercent * totalDurSec).toFixed(1)}s`;
+          if (kf.id === activeKeyframeId || Math.abs(kf.timePercent - curT) < 0.015) {
+            marker.classList.add('active');
+          }
+          marker.addEventListener('click', (e) => {
+            e.stopPropagation();
+            jumpToKeyframe(kf);
+          });
+          markersBar.appendChild(marker);
+        });
+      }
+
+      // Update keyframe chips
+      const chipsList = document.getElementById('kf-chips-list');
+      if (chipsList) {
+        chipsList.innerHTML = '';
+        timelineKeyframes.forEach((kf, idx) => {
+          const chip = document.createElement('div');
+          chip.className = 'kf-chip';
+          if (kf.id === activeKeyframeId || Math.abs(kf.timePercent - curT) < 0.015) {
+            chip.classList.add('active');
+          }
+
+          const label = document.createElement('span');
+          label.innerHTML = `&#9670; KF ${idx + 1} <span style="opacity:0.65; font-size:10px;">(${(kf.timePercent * totalDurSec).toFixed(1)}s)</span>`;
+          chip.appendChild(label);
+
+          if (timelineKeyframes.length > 1) {
+            const delBtn = document.createElement('span');
+            delBtn.className = 'del-kf';
+            delBtn.innerHTML = '&times;';
+            delBtn.title = 'Delete this keyframe';
+            delBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              deleteKeyframe(kf.id);
+            });
+            chip.appendChild(delBtn);
+          }
+
+          chip.addEventListener('click', () => {
+            jumpToKeyframe(kf);
+          });
+
+          chipsList.appendChild(chip);
+        });
+      }
+    }
+
+    function updateActiveMarkerHighlight(curT) {
+      const markers = document.querySelectorAll('.kf-marker');
+      const chips = document.querySelectorAll('.kf-chip');
+      let nearestIdx = -1;
+      let minDiff = 0.02;
+
+      timelineKeyframes.forEach((kf, idx) => {
+        const diff = Math.abs(kf.timePercent - curT);
+        if (diff < minDiff) {
+          minDiff = diff;
+          nearestIdx = idx;
+        }
+      });
+
+      markers.forEach((m, idx) => {
+        if (idx === nearestIdx) m.classList.add('active');
+        else m.classList.remove('active');
+      });
+
+      chips.forEach((c, idx) => {
+        if (idx === nearestIdx) c.classList.add('active');
+        else c.classList.remove('active');
+      });
+    }
+
+    function jumpToKeyframe(kf) {
+      stopPreviewAnim();
+      activeKeyframeId = kf.id;
+      const scrub = document.getElementById('anim-scrub');
+      if (scrub) scrub.value = kf.timePercent;
+      applyKeyframeLerp(kf.timePercent);
+      renderTimelineUI();
+    }
+
+    function addKeyframeAtCurrentTime() {
+      const scrub = document.getElementById('anim-scrub');
+      const curT = scrub ? parseFloat(scrub.value) : 0;
+
+      // Check if there is already a keyframe at or very close to this time
+      const existing = timelineKeyframes.find(k => Math.abs(k.timePercent - curT) < 0.015);
+      if (existing) {
+        existing.pos.copy(modelRoot.position);
+        existing.quat.copy(modelRoot.quaternion);
+        existing.zoom = camera.position.z;
+        activeKeyframeId = existing.id;
+      } else {
+        const newKf = {
+          id: Date.now(),
+          timePercent: curT,
+          pos: modelRoot.position.clone(),
+          quat: modelRoot.quaternion.clone(),
+          zoom: camera.position.z
+        };
+        timelineKeyframes.push(newKf);
+        timelineKeyframes.sort((a, b) => a.timePercent - b.timePercent);
+        activeKeyframeId = newKf.id;
+      }
+
+      const btn = document.getElementById('btn-add-kf');
+      if (btn) {
+        btn.classList.add('active-kf');
+        setTimeout(() => btn.classList.remove('active-kf'), 400);
+      }
+
+      renderTimelineUI();
+    }
+
+    function updateActiveKeyframePose() {
+      const scrub = document.getElementById('anim-scrub');
+      const curT = scrub ? parseFloat(scrub.value) : 0;
+
+      let targetKf = timelineKeyframes.find(k => k.id === activeKeyframeId);
+      if (!targetKf || Math.abs(targetKf.timePercent - curT) > 0.05) {
+        // Fall back to nearest keyframe
+        let minDiff = Infinity;
+        timelineKeyframes.forEach(k => {
+          const diff = Math.abs(k.timePercent - curT);
+          if (diff < minDiff) {
+            minDiff = diff;
+            targetKf = k;
+          }
+        });
+      }
+
+      if (targetKf) {
+        targetKf.pos.copy(modelRoot.position);
+        targetKf.quat.copy(modelRoot.quaternion);
+        targetKf.zoom = camera.position.z;
+        activeKeyframeId = targetKf.id;
+
+        const btn = document.getElementById('btn-update-kf');
+        if (btn) {
+          btn.classList.add('active-kf');
+          setTimeout(() => btn.classList.remove('active-kf'), 400);
+        }
+        renderTimelineUI();
+      }
+    }
+
+    function deleteKeyframe(id) {
+      if (timelineKeyframes.length <= 1) return;
+      timelineKeyframes = timelineKeyframes.filter(k => k.id !== id);
+      if (timelineKeyframes.length > 0 && !timelineKeyframes.some(k => k.id === activeKeyframeId)) {
+        activeKeyframeId = timelineKeyframes[0].id;
+      }
+      renderTimelineUI();
+    }
+
+    function resetKeyframesToDefault() {
+      timelineKeyframes = [
+        {
+          id: 1,
+          timePercent: 0.0,
+          pos: new THREE.Vector3(0, 0, 0),
+          quat: new THREE.Quaternion().identity(),
+          zoom: isMobileView ? 8.5 : 7.5
+        },
+        {
+          id: 2,
+          timePercent: 1.0,
+          pos: new THREE.Vector3(0, 0, 0),
+          quat: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2.3),
+          zoom: isMobileView ? 8.5 : 7.5
+        }
+      ];
+      activeKeyframeId = 1;
+      const scrub = document.getElementById('anim-scrub');
+      if (scrub) scrub.value = 0;
       applyKeyframeLerp(0);
-    });
+      renderTimelineUI();
+    }
 
-    document.getElementById('btn-goto-kfb').addEventListener('click', () => {
-      isPlayingAnim = false;
-      document.getElementById('anim-scrub').value = 1;
-      applyKeyframeLerp(1);
-    });
-
-    const scrubSlider = document.getElementById('anim-scrub');
-    scrubSlider.addEventListener('input', (e) => {
-      isPlayingAnim = false;
-      applyKeyframeLerp(parseFloat(e.target.value));
-    });
-
-    document.getElementById('btn-play-anim').addEventListener('click', () => {
+    function startPreviewAnim() {
       isPlayingAnim = true;
-      animStartTime = performance.now();
-      animDurationMs = Math.max(0.1, parseFloat(document.getElementById('anim-duration').value)) * 1000;
+      const playBtn = document.getElementById('btn-play-anim');
+      if (playBtn) {
+        playBtn.innerText = 'Stop Preview';
+        playBtn.classList.add('primary');
+      }
+
+      const durSec = getAnimDurationSec();
+      animDurationMs = durSec * 1000;
+
+      const scrub = document.getElementById('anim-scrub');
+      let startProgress = scrub ? parseFloat(scrub.value) : 0;
+      if (startProgress >= 0.999) {
+        startProgress = 0;
+        if (scrub) scrub.value = 0;
+      }
+
+      animStartTime = performance.now() - (startProgress * animDurationMs);
 
       if (userMedia && isVideoMedia && userMedia.duration) {
         totalPlaybackDurationMs = userMedia.duration * 1000;
         userMedia.playbackRate = 1.0;
-        userMedia.currentTime = 0;
-        userMedia.play();
+        userMedia.currentTime = startProgress * userMedia.duration;
+        userMedia.play().catch(() => {});
       } else {
         totalPlaybackDurationMs = animDurationMs;
       }
+    }
+
+    function stopPreviewAnim() {
+      isPlayingAnim = false;
+      const playBtn = document.getElementById('btn-play-anim');
+      if (playBtn) {
+        playBtn.innerText = 'Play Preview';
+        playBtn.classList.remove('primary');
+      }
+      if (userMedia && isVideoMedia) userMedia.pause();
+    }
+
+    const scrubSlider = document.getElementById('anim-scrub');
+    scrubSlider.addEventListener('input', (e) => {
+      stopPreviewAnim();
+      const val = parseFloat(e.target.value);
+      applyKeyframeLerp(val);
+      const dur = getAnimDurationSec();
+      const timeDisplay = document.getElementById('timeline-time-display');
+      if (timeDisplay) timeDisplay.innerText = `${(val * dur).toFixed(1)}s / ${dur.toFixed(1)}s`;
+      updateActiveMarkerHighlight(val);
     });
 
-    document.getElementById('btn-stop-anim').addEventListener('click', () => {
-      isPlayingAnim = false;
-      if (userMedia && isVideoMedia) userMedia.pause();
+    document.getElementById('btn-add-kf').addEventListener('click', addKeyframeAtCurrentTime);
+    document.getElementById('btn-update-kf').addEventListener('click', updateActiveKeyframePose);
+
+    document.getElementById('btn-prev-kf').addEventListener('click', () => {
+      const curT = parseFloat(scrubSlider.value);
+      let target = null;
+      for (let i = timelineKeyframes.length - 1; i >= 0; i--) {
+        if (timelineKeyframes[i].timePercent < curT - 0.005) {
+          target = timelineKeyframes[i];
+          break;
+        }
+      }
+      if (!target && timelineKeyframes.length > 0) target = timelineKeyframes[0];
+      if (target) jumpToKeyframe(target);
     });
+
+    document.getElementById('btn-next-kf').addEventListener('click', () => {
+      const curT = parseFloat(scrubSlider.value);
+      let target = null;
+      for (let i = 0; i < timelineKeyframes.length; i++) {
+        if (timelineKeyframes[i].timePercent > curT + 0.005) {
+          target = timelineKeyframes[i];
+          break;
+        }
+      }
+      if (!target && timelineKeyframes.length > 0) target = timelineKeyframes[timelineKeyframes.length - 1];
+      if (target) jumpToKeyframe(target);
+    });
+
+    document.getElementById('btn-play-anim').addEventListener('click', () => {
+      if (isPlayingAnim) {
+        stopPreviewAnim();
+      } else {
+        startPreviewAnim();
+      }
+    });
+
+    document.getElementById('btn-reset-kf').addEventListener('click', resetKeyframesToDefault);
+
+    document.getElementById('anim-duration').addEventListener('input', () => {
+      animDurationMs = getAnimDurationSec() * 1000;
+      totalPlaybackDurationMs = animDurationMs;
+      renderTimelineUI();
+    });
+
+    renderTimelineUI();
 
     // ========================================================
     // 8. FILE SELECTION (5s DEFAULT FOR IMAGES, VIDEO LENGTH FOR SCREENCASTS)
@@ -1659,6 +2111,7 @@
     const videoControlsBox = document.getElementById('video-controls-box');
     const btnVideoPlayPause = document.getElementById('btn-video-playpause');
     const btnVideoMute = document.getElementById('btn-video-mute');
+    const rowAnimDuration = document.getElementById('row-anim-duration');
     const rowMediaDuration = document.getElementById('row-media-duration');
     const labelMediaDuration = document.getElementById('label-media-duration');
     const animDurationInput = document.getElementById('anim-duration');
@@ -1672,17 +2125,19 @@
       isVideoMedia = false;
       videoControlsBox.style.display = 'none';
       rowMediaDuration.style.display = 'none';
+      if (rowAnimDuration) rowAnimDuration.style.display = 'flex';
 
-      animDurationInput.value = "5.0";
-      animDurationMs = 5000;
-      totalPlaybackDurationMs = 5000;
+      const durSec = getAnimDurationSec();
+      animDurationMs = durSec * 1000;
+      totalPlaybackDurationMs = animDurationMs;
 
       currentMediaBlobUrl = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
         userMedia = img;
-        mediaLabel.innerText = `Image: ${file.name} (${img.naturalWidth}×${img.naturalHeight} · 5.0s default)`;
+        mediaLabel.innerText = `Image: ${file.name} (${img.naturalWidth}×${img.naturalHeight})`;
         updateActiveScreenMedia();
+        renderTimelineUI();
       };
       img.src = currentMediaBlobUrl;
     });
@@ -1694,6 +2149,10 @@
       cleanupPreviousMedia();
 
       isVideoMedia = true;
+      if (rowAnimDuration) rowAnimDuration.style.display = 'none';
+      rowMediaDuration.style.display = 'flex';
+      labelMediaDuration.innerText = `Loading video...`;
+
       currentMediaBlobUrl = URL.createObjectURL(file);
 
       const video = document.createElement('video');
@@ -1707,18 +2166,19 @@
         const dur = video.duration && !isNaN(video.duration) ? video.duration : 5.0;
         const durFormatted = dur.toFixed(1);
 
-        animDurationInput.value = durFormatted;
         animDurationMs = dur * 1000;
         totalPlaybackDurationMs = dur * 1000;
 
+        if (rowAnimDuration) rowAnimDuration.style.display = 'none';
         rowMediaDuration.style.display = 'flex';
-        labelMediaDuration.innerText = `${durFormatted}s (Full length synced)`;
+        labelMediaDuration.innerText = `${durFormatted}s (Video Length)`;
         mediaLabel.innerText = `Video: ${file.name} (${video.videoWidth}×${video.videoHeight} · ${durFormatted}s)`;
         videoControlsBox.style.display = 'block';
 
         video.play().catch(() => {});
         userMedia = video;
         updateActiveScreenMedia();
+        renderTimelineUI();
       };
     });
 
@@ -2009,12 +2469,8 @@
       const statusLabel = document.getElementById('record-status');
       renderControls.style.display = 'block';
 
-      const motionDurationSec = Math.max(0.1, parseFloat(document.getElementById('anim-duration').value));
-      let exportDurationSec = motionDurationSec;
-
-      if (userMedia && isVideoMedia && userMedia.duration && !isNaN(userMedia.duration)) {
-        exportDurationSec = userMedia.duration;
-      }
+      const exportDurationSec = getAnimDurationSec();
+      const motionDurationSec = exportDurationSec;
 
       const info = CANVAS_RATIOS[activeCanvasPreset] || CANVAS_RATIOS['9:16'];
       let vidW, vidH;
@@ -2285,8 +2741,13 @@
           const totalProgress = Math.min(1.0, elapsed / totalPlaybackDurationMs);
           scrubSlider.value = totalProgress;
 
+          const dur = getAnimDurationSec();
+          const timeDisplay = document.getElementById('timeline-time-display');
+          if (timeDisplay) timeDisplay.innerText = `${(totalProgress * dur).toFixed(1)}s / ${dur.toFixed(1)}s`;
+          updateActiveMarkerHighlight(totalProgress);
+
           if (totalProgress >= 1.0) {
-            isPlayingAnim = false;
+            stopPreviewAnim();
           }
         }
 
